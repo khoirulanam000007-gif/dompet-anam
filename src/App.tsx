@@ -147,6 +147,7 @@ function Main({ session }: { session: Session }) {
           accounts={accounts}
           categories={categories}
           editing={form.editing}
+          recent={txs}
           defaultKind={form.kind}
           onClose={() => setForm({ open: false, editing: null })}
           onSaved={() => { setForm({ open: false, editing: null }); load(); toast(form.editing ? "Perubahan tersimpan" : "Transaksi tersimpan", "ok"); }}

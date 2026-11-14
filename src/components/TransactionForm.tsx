@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import type { Account, Category, Tx } from "../lib/types";
+import { rupiahShort } from "../lib/format";
+import { catIcon } from "../lib/icons";
 
 type Props = {
   accounts: Account[];
   categories: Category[];
   editing: Tx | null;
+  recent?: Tx[];
   defaultKind?: "income" | "expense";
   onClose: () => void;
   onSaved: () => void;
@@ -17,7 +20,7 @@ const toLocalInput = (iso?: string) => {
   return d.toISOString().slice(0, 16);
 };
 
-export default function TransactionForm({ accounts, categories, editing, defaultKind, onClose, onSaved }: Props) {
+export default function TransactionForm({ accounts, categories, editing, recent = [], defaultKind, onClose, onSaved }: Props) {
   const [kind, setKind] = useState<"income" | "expense">(editing ? (editing.type === "income" ? "income" : "expense") : defaultKind ?? "expense");
   const [digits, setDigits] = useState(editing ? String(editing.amount) : "");
   const [accountId, setAccountId] = useState(editing?.account_id ?? accounts[0]?.id ?? "");
@@ -30,6 +33,26 @@ export default function TransactionForm({ accounts, categories, editing, default
 
   const cats = categories.filter((c) => c.kind === kind);
   const amount = Number(digits || 0);
+
+  // Pakai ulang transaksi terakhir (4 unik) untuk jenis yang sedang dipilih.
+  const templates: Tx[] = [];
+  if (!editing) {
+    const seen = new Set<string>();
+    for (const t of recent) {
+      if (t.type !== kind) continue;
+      const k = `${t.category_id ?? ""}|${(t.note ?? t.source ?? "").toLowerCase()}|${t.amount}`;
+      if (seen.has(k)) continue;
+      seen.add(k); templates.push(t);
+      if (templates.length === 4) break;
+    }
+  }
+  function useTemplate(t: Tx) {
+    setDigits(String(t.amount));
+    if (accounts.some((a) => a.id === t.account_id)) setAccountId(t.account_id);
+    setCategoryId(t.category_id ?? "");
+    setNote(t.note ?? "");
+    setSource(t.source ?? "");
+  }
 
   async function save() {
     setErr("");
@@ -76,6 +99,22 @@ export default function TransactionForm({ accounts, categories, editing, default
             </button>
           ))}
         </div>
+
+        {templates.length > 0 && (
+          <div className="mt-3">
+            <p className="text-xs text-charcoal/60">Pakai ulang transaksi terakhir</p>
+            <div className="chips mt-1.5 flex gap-2 overflow-x-auto pb-1">
+              {templates.map((t) => {
+                const cn = categories.find((c) => c.id === t.category_id)?.name;
+                return (
+                  <button key={t.id} onClick={() => useTemplate(t)} className="shrink-0 rounded-full border border-charcoal/15 bg-white px-3 py-1.5 text-xs font-medium">
+                    {catIcon(cn)} {t.note || t.source || cn || "Transaksi"} · {rupiahShort(t.amount)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="mt-4 space-y-3">
           <div>

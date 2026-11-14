@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabase";
 import { rupiah } from "../lib/format";
 import type { Category } from "../lib/types";
 import { catIcon } from "../lib/icons";
+import Donut, { type Seg } from "../components/Donut";
 
 type Row = { type: string; amount: number; category_id: string | null; occurred_at: string };
 type P = "minggu" | "bulan" | "tahun";
@@ -63,6 +64,7 @@ export default function Analysis({ categories, total }: { categories: Category[]
   const [cur, setCur] = useState<Row[]>([]);
   const [prev, setPrev] = useState<Row[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [dk, setDk] = useState<"expense" | "income">("expense");
   const [start, end] = range(p, off);
   const [pStart] = range(p, off - 1);
 
@@ -94,12 +96,15 @@ export default function Analysis({ categories, total }: { categories: Category[]
   const label = (i: number) => (p === "tahun" ? MONTHS[i] : p === "minggu" ? DAYS[i] : i % 5 === 0 || i === n - 1 ? String(i + 1) : "");
 
   const byCat: Record<string, number> = {};
-  cur.filter((r) => r.type === "expense").forEach((r) => { const k = r.category_id ?? "-"; byCat[k] = (byCat[k] ?? 0) + r.amount; });
+  cur.filter((r) => r.type === dk).forEach((r) => { const k = r.category_id ?? "-"; byCat[k] = (byCat[k] ?? 0) + r.amount; });
   const cats = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
-  const PAL = ["#0b1f3a", "#0f9d6b", "#c9a961", "#14527a", "#7aa7a0", "#9a7a2e"];
-  const rest = cats.slice(5).reduce((a, [, v]) => a + v, 0);
-  const segs = [...cats.slice(0, 5).map(([id, v], i) => ({ id, v, c: PAL[i] })), ...(rest > 0 ? [{ id: "~", v: rest, c: PAL[5] }] : [])];
   const catName = (id: string) => categories.find((c) => c.id === id)?.name ?? "Tanpa kategori";
+  const dTotal = dk === "expense" ? exp : inc;
+  const restV = cats.slice(6).reduce((a, [, v]) => a + v, 0);
+  const segs: Seg[] = [
+    ...cats.slice(0, 6).map(([id, v]) => ({ key: id, label: catName(id), icon: catIcon(catName(id)), value: v })),
+    ...(restV > 0 ? [{ key: "~", label: "Lainnya", icon: "📦", value: restV }] : []),
+  ];
 
   const title = p === "tahun" ? String(start.getFullYear())
     : p === "bulan" ? start.toLocaleDateString("id-ID", { month: "long", year: "numeric" })
@@ -148,35 +153,20 @@ export default function Analysis({ categories, total }: { categories: Category[]
         <p className="mt-1">{cmp(inc, pInc, "Pemasukan")}</p>
       </div>
 
-      <h2 className="mt-6 text-lg font-semibold text-navy">Pengeluaran per kategori</h2>
-      {exp > 0 && segs.length > 0 && (
-        <div className="mt-2 flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm">
-          <svg viewBox="0 0 120 120" className="h-28 w-28 shrink-0" role="img" aria-label="Diagram pengeluaran per kategori">
-            <circle cx="60" cy="60" r="40" fill="none" strokeWidth="16" stroke="currentColor" className="text-charcoal/10" />
-            {(() => { let off = 0; return segs.map((x) => { const len = (x.v / exp) * 251.33; const el = <circle key={x.id} cx="60" cy="60" r="40" fill="none" strokeWidth="16" stroke={x.c} strokeDasharray={`${len} ${251.33 - len}`} strokeDashoffset={-off} transform="rotate(-90 60 60)" />; off += len; return el; }); })()}
-            <text x="60" y="58" textAnchor="middle" fontSize="17" fontWeight="700" fill="currentColor">{Math.round((segs[0].v / exp) * 100)}%</text>
-            <text x="60" y="73" textAnchor="middle" fontSize="8" fill="currentColor" opacity="0.6">terbesar</text>
-          </svg>
-          <ul className="min-w-0 flex-1 space-y-1.5 text-sm">
-            {segs.map((x) => (
-              <li key={x.id} className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: x.c }} />
-                <span className="truncate">{x.id === "~" ? "Lainnya" : catName(x.id)}</span>
-                <span className="ml-auto text-charcoal/60">{Math.round((x.v / exp) * 100)}%</span>
-              </li>
-            ))}
-          </ul>
+      <div className="mt-6 flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-navy">Rincian per kategori</h2>
+        <div className="flex rounded-full bg-charcoal/10 p-0.5 text-xs">
+          {(["expense", "income"] as const).map((k) => (
+            <button key={k} onClick={() => setDk(k)} className={`rounded-full px-3 py-1 font-medium ${dk === k ? "bg-navy text-white" : ""}`}>{k === "expense" ? "Keluar" : "Masuk"}</button>
+          ))}
         </div>
-      )}
-      <ul className="mt-2 space-y-3 pb-4">
-        {cats.length === 0 && <li className="text-charcoal/60">Belum ada pengeluaran.</li>}
-        {cats.map(([id, v]) => (
-          <li key={id}>
-            <div className="flex justify-between text-sm"><span>{catIcon(catName(id))} {catName(id)}</span><span>{rupiah(v)} · {Math.round((v / exp) * 100)}%</span></div>
-            <div className="mt-1 h-2 overflow-hidden rounded-full bg-charcoal/10"><div className="h-full bg-gold" style={{ width: `${(v / exp) * 100}%` }} /></div>
-          </li>
-        ))}
-      </ul>
+      </div>
+      <div className="mt-2 rounded-2xl bg-white p-4 pb-3 shadow-sm">
+        {dTotal > 0 && segs.length > 0
+          ? <Donut key={`${dk}-${p}-${off}`} segs={segs} total={dTotal} title={dk === "expense" ? "Pengeluaran" : "Pemasukan"} />
+          : <p className="py-6 text-center text-sm text-charcoal/60">{dk === "expense" ? "Belum ada pengeluaran di periode ini." : "Belum ada pemasukan di periode ini."}</p>}
+      </div>
+      <div className="pb-4" />
     </section>
   );
 }

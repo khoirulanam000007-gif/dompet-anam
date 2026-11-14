@@ -114,6 +114,15 @@ export default function Home({ accounts, categories, txs, total, onAdd, onTransf
     : tot.exp > tot.inc ? "Pengeluaran melebihi pemasukan. Tinjau kategori terbesar di menu Analisis."
     : left / tot.inc >= 0.3 ? `Kondisi sehat: ${Math.round((left / tot.inc) * 100)}% pemasukan Anda masih tersisa.`
     : `Cukup baik: ${Math.round((left / tot.inc) * 100)}% pemasukan tersisa. Jaga pengeluaran.`;
+  const nowD = new Date();
+  const dayN = nowD.getDate();
+  const dim = new Date(nowD.getFullYear(), nowD.getMonth() + 1, 0).getDate();
+  const daysLeft = dim - dayN + 1;
+  const avgDay = mExp / dayN;
+  const projected = avgDay * dim;
+  const refLimit = bud.limit > 0 ? bud.limit : mInc;
+  const refName = bud.limit > 0 ? "anggaran" : "pemasukan";
+  const safeDay = refLimit > 0 ? Math.max(0, (refLimit - mExp) / daysLeft) : 0;
   const card = "rise rounded-2xl bg-white p-4 shadow-sm";
   const pct = (a: number, b: number) => (b > 0 ? Math.min(100, Math.round((a / b) * 100)) : 0);
 
@@ -180,6 +189,30 @@ export default function Home({ accounts, categories, txs, total, onAdd, onTransf
         <div className="rise rounded-2xl border border-gold/50 bg-white px-4 py-3 text-sm shadow-sm" style={{ animationDelay: "120ms" }}>
           <span className="font-semibold text-navy">Kondisi keuangan · </span>{insight}
         </div>
+
+        {mExp > 0 && (
+          <div className={card}>
+            <div className="flex items-center justify-between gap-2">
+              <p className="font-medium text-navy">Proyeksi bulan ini</p>
+              {refLimit > 0 && (
+                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${projected > refLimit ? "bg-amber-100 text-amber-800" : "bg-emerald/15 text-emerald"}`}>
+                  {projected > refLimit ? "⚠ Berpotensi melebihi" : "✓ Terkendali"}
+                </span>
+              )}
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-center">
+              <div className="rounded-xl bg-charcoal/5 p-3"><p className="text-xs text-charcoal/60">Rata-rata per hari</p><p className="font-semibold">{money(avgDay)}</p></div>
+              <div className="rounded-xl bg-charcoal/5 p-3"><p className="text-xs text-charcoal/60">Perkiraan akhir bulan</p><p className="font-semibold">{money(projected)}</p></div>
+            </div>
+            {refLimit > 0 && (
+              <p className="mt-3 text-sm text-charcoal/70">
+                {mExp >= refLimit
+                  ? `Pengeluaran sudah melewati ${refName} bulan ini.`
+                  : `Batas aman ${money(safeDay)} per hari untuk ${daysLeft} hari tersisa agar tidak melebihi ${refName}.`}
+              </p>
+            )}
+          </div>
+        )}
 
         {top.length > 0 && (
           <div className={card}>
