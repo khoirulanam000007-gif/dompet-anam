@@ -7,11 +7,12 @@ import Login from "./pages/Login";
 import Transactions from "./pages/Transactions";
 import TransactionForm from "./components/TransactionForm";
 import TransferForm from "./components/TransferForm";
-import Accounts from "./pages/Accounts";
+import More from "./pages/More";
+import Analysis from "./pages/Analysis";
 import Plans from "./pages/Plans";
 
 function Main({ session }: { session: Session }) {
-  const [tab, setTab] = useState<"beranda" | "transaksi" | "rekening" | "rencana">("beranda");
+  const [tab, setTab] = useState<"beranda" | "transaksi" | "analisis" | "rencana" | "lainnya">("beranda");
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [txs, setTxs] = useState<Tx[]>([]);
@@ -96,8 +97,10 @@ function Main({ session }: { session: Session }) {
           />
           <p className="px-5 pt-6 text-xs text-charcoal/60">Masuk sebagai {session.user.email}</p>
         </>
-      ) : tab === "rekening" ? (
-        <Accounts accounts={accounts} onChanged={load} onTransfer={() => setTransfer(true)} />
+      ) : tab === "analisis" ? (
+        <Analysis categories={categories} />
+      ) : tab === "lainnya" ? (
+        <More accounts={accounts} categories={categories} onChanged={load} onTransfer={() => setTransfer(true)} />
       ) : tab === "rencana" ? (
         <Plans accounts={accounts} categories={categories} onChanged={load} />
       ) : (
@@ -122,12 +125,12 @@ function Main({ session }: { session: Session }) {
       </button>
 
       <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-charcoal/10 bg-white pb-[env(safe-area-inset-bottom)]">
-        <div className="mx-auto grid max-w-xl grid-cols-4">
-          {([["beranda", "Beranda"], ["transaksi", "Transaksi"], ["rekening", "Rekening"], ["rencana", "Rencana"]] as const).map(([k, label]) => (
+        <div className="mx-auto grid max-w-xl grid-cols-5">
+          {([["beranda", "Beranda"], ["transaksi", "Transaksi"], ["analisis", "Analisis"], ["rencana", "Rencana"], ["lainnya", "Lainnya"]] as const).map(([k, label]) => (
             <button
               key={k}
               onClick={() => setTab(k)}
-              className={`py-4 text-sm font-medium ${tab === k ? "border-t-2 border-gold text-navy" : "text-charcoal/60"}`}
+              className={`py-4 text-xs font-medium ${tab === k ? "border-t-2 border-gold text-navy" : "text-charcoal/60"}`}
             >
               {label}
             </button>
