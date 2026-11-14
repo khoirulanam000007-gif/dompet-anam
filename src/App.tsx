@@ -8,9 +8,10 @@ import Transactions from "./pages/Transactions";
 import TransactionForm from "./components/TransactionForm";
 import TransferForm from "./components/TransferForm";
 import Accounts from "./pages/Accounts";
+import Plans from "./pages/Plans";
 
 function Main({ session }: { session: Session }) {
-  const [tab, setTab] = useState<"beranda" | "transaksi" | "rekening">("beranda");
+  const [tab, setTab] = useState<"beranda" | "transaksi" | "rekening" | "rencana">("beranda");
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [txs, setTxs] = useState<Tx[]>([]);
@@ -97,6 +98,8 @@ function Main({ session }: { session: Session }) {
         </>
       ) : tab === "rekening" ? (
         <Accounts accounts={accounts} onChanged={load} onTransfer={() => setTransfer(true)} />
+      ) : tab === "rencana" ? (
+        <Plans accounts={accounts} categories={categories} onChanged={load} />
       ) : (
         <>
           <h2 className="px-5 pt-5 text-lg font-semibold text-navy">Riwayat transaksi</h2>
@@ -119,12 +122,12 @@ function Main({ session }: { session: Session }) {
       </button>
 
       <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-charcoal/10 bg-white pb-[env(safe-area-inset-bottom)]">
-        <div className="mx-auto grid max-w-xl grid-cols-3">
-          {([["beranda", "Beranda"], ["transaksi", "Transaksi"], ["rekening", "Rekening"]] as const).map(([k, label]) => (
+        <div className="mx-auto grid max-w-xl grid-cols-4">
+          {([["beranda", "Beranda"], ["transaksi", "Transaksi"], ["rekening", "Rekening"], ["rencana", "Rencana"]] as const).map(([k, label]) => (
             <button
               key={k}
               onClick={() => setTab(k)}
-              className={`py-4 font-medium ${tab === k ? "border-t-2 border-gold text-navy" : "text-charcoal/60"}`}
+              className={`py-4 text-sm font-medium ${tab === k ? "border-t-2 border-gold text-navy" : "text-charcoal/60"}`}
             >
               {label}
             </button>

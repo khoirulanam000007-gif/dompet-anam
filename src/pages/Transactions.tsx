@@ -29,12 +29,13 @@ export default function Transactions({ txs, accounts, categories, onEdit, onChan
     <ul className="space-y-2 px-5 pt-4">
       {txs.map((t) => {
         const isTransfer = t.type === "transfer";
-        const plus = t.type === "income";
+        const plus = t.type === "income" || t.type === "saving_withdraw";
+        const label = isTransfer ? "Transfer" : t.type === "saving_deposit" ? "Setoran tabungan" : t.type === "saving_withdraw" ? "Penarikan tabungan" : cat(t.category_id);
         const editable = plus || t.type === "expense";
         return (
           <li key={t.id} className="rounded-2xl bg-white px-4 py-3 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="font-medium">{isTransfer ? "Transfer" : cat(t.category_id)}</span>
+              <span className="font-medium">{label}</span>
               <span className={`font-semibold ${plus ? "text-emerald" : "text-charcoal"}`}>
                 {isTransfer ? "" : plus ? "+" : "-"}{rupiah(t.amount)}
               </span>
@@ -43,7 +44,7 @@ export default function Transactions({ txs, accounts, categories, onEdit, onChan
               {isTransfer ? `${acc(t.account_id)} → ${acc(t.to_account_id)}` : acc(t.account_id)} · {fmtDate(t.occurred_at)}
             </p>
             {(t.source || t.note) && <p className="text-sm">{[t.source, t.note].filter(Boolean).join(" - ")}</p>}
-            {(editable || isTransfer) && (
+            {(
               <div className="mt-2 flex gap-4 text-sm">
                 {editable && <button onClick={() => onEdit(t)} className="text-navy underline">Ubah</button>}
                 <button onClick={() => remove(t)} className="text-red-700 underline">Hapus</button>
