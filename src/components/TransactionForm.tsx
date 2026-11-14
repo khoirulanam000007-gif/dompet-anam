@@ -6,6 +6,7 @@ type Props = {
   accounts: Account[];
   categories: Category[];
   editing: Tx | null;
+  defaultKind?: "income" | "expense";
   onClose: () => void;
   onSaved: () => void;
 };
@@ -16,8 +17,8 @@ const toLocalInput = (iso?: string) => {
   return d.toISOString().slice(0, 16);
 };
 
-export default function TransactionForm({ accounts, categories, editing, onClose, onSaved }: Props) {
-  const [kind, setKind] = useState<"income" | "expense">(editing?.type === "income" ? "income" : editing ? "expense" : "expense");
+export default function TransactionForm({ accounts, categories, editing, defaultKind, onClose, onSaved }: Props) {
+  const [kind, setKind] = useState<"income" | "expense">(editing ? (editing.type === "income" ? "income" : "expense") : defaultKind ?? "expense");
   const [digits, setDigits] = useState(editing ? String(editing.amount) : "");
   const [accountId, setAccountId] = useState(editing?.account_id ?? accounts[0]?.id ?? "");
   const [categoryId, setCategoryId] = useState(editing?.category_id ?? "");

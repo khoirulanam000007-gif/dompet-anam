@@ -11,7 +11,16 @@ import TransactionForm from "./components/TransactionForm";
 import TransferForm from "./components/TransferForm";
 import More from "./pages/More";
 import Analysis from "./pages/Analysis";
+import Home from "./pages/Home";
 import Plans from "./pages/Plans";
+
+const ICONS: Record<string, string> = {
+  beranda: "M3 11l9-8 9 8M5 10v10h14V10",
+  transaksi: "M4 6h16M4 12h16M4 18h10",
+  analisis: "M4 20V10M10 20V4M16 20V14M21 20H3",
+  rencana: "M12 3a9 9 0 100 18 9 9 0 000-18zM12 8a4 4 0 100 8 4 4 0 000-8z",
+  lainnya: "M5 12h.01M12 12h.01M19 12h.01",
+};
 
 function Main({ session }: { session: Session }) {
   const [tab, setTab] = useState<"beranda" | "transaksi" | "analisis" | "rencana" | "lainnya">("beranda");
@@ -22,7 +31,7 @@ function Main({ session }: { session: Session }) {
   const [transfer, setTransfer] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState<{ open: boolean; editing: Tx | null }>({ open: false, editing: null });
+  const [form, setForm] = useState<{ open: boolean; editing: Tx | null; kind?: "income" | "expense" }>({ open: false, editing: null });
 
   const load = useCallback(async () => {
     const start = new Date();
@@ -55,7 +64,7 @@ function Main({ session }: { session: Session }) {
 
   return (
     <div className="mx-auto min-h-screen max-w-xl pb-28">
-      <header className="no-print flex items-center justify-between bg-navy px-5 py-4 text-white">
+      <header className="no-print flex items-center justify-between bg-[#0b1f3a] px-5 py-4 text-white">
         <span className="font-semibold tracking-wide">DOMPET ANAM</span>
         <button onClick={() => supabase.auth.signOut()} className="text-sm text-white/80 underline">Keluar</button>
       </header>
@@ -63,45 +72,16 @@ function Main({ session }: { session: Session }) {
       {error && <p className="px-5 pt-3 text-sm text-red-700">{error}</p>}
 
       {tab === "beranda" ? (
-        <>
-          <section className="bg-navy px-5 pb-6 pt-2 text-white">
-            <p className="text-sm text-white/70">Total saldo</p>
-            <p className="mt-1 text-4xl font-semibold">{loaded ? rupiah(total) : "..."}</p>
-            <div className="mt-3 h-0.5 w-10 bg-gold" />
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-sm text-white/70">Pemasukan bulan ini</p>
-                <p className="font-semibold text-emerald-300">{rupiah(income)}</p>
-              </div>
-              <div>
-                <p className="text-sm text-white/70">Pengeluaran bulan ini</p>
-                <p className="font-semibold">{rupiah(expense)}</p>
-              </div>
-            </div>
-            <p className="mt-3 text-sm text-white/70">Selisih bulan ini: {rupiah(income - expense)}</p>
-          </section>
-
-          <section className="px-5 pt-6">
-            <h2 className="text-lg font-semibold text-navy">Rekening</h2>
-            <ul className="mt-3 space-y-2">
-              {accounts.map((a) => (
-                <li key={a.id} className="flex items-center justify-between rounded-2xl bg-white px-4 py-3 shadow-sm">
-                  <span>{a.name}</span>
-                  <span className="font-medium">{rupiah(a.balance)}</span>
-                </li>
-              ))}
-            </ul>
-            <h2 className="mt-6 text-lg font-semibold text-navy">Transaksi terbaru</h2>
-          </section>
-          <Transactions
-            txs={txs.slice(0, 5)}
-            accounts={accounts}
-            categories={categories}
-            onEdit={(t) => setForm({ open: true, editing: t })}
-            onChanged={load}
-          />
-          <p className="px-5 pt-6 text-xs text-charcoal/60">Masuk sebagai {session.user.email}</p>
-        </>
+        <Home
+          accounts={accounts}
+          categories={categories}
+          txs={txs}
+          total={total}
+          onAdd={(k) => setForm({ open: true, editing: null, kind: k })}
+          onTransfer={() => setTransfer(true)}
+          onEdit={(t) => setForm({ open: true, editing: t })}
+          onChanged={load}
+        />
       ) : tab === "analisis" ? (
         <Analysis categories={categories} />
       ) : tab === "lainnya" ? (
@@ -135,8 +115,9 @@ function Main({ session }: { session: Session }) {
             <button
               key={k}
               onClick={() => setTab(k)}
-              className={`py-4 text-xs font-medium ${tab === k ? "border-t-2 border-gold text-navy" : "text-charcoal/60"}`}
+              className={`py-2.5 text-[11px] font-medium ${tab === k ? "border-t-2 border-gold text-navy" : "text-charcoal/60"}`}
             >
+              <svg viewBox="0 0 24 24" className="mx-auto mb-0.5 h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={ICONS[k]} /></svg>
               {label}
             </button>
           ))}
@@ -152,6 +133,7 @@ function Main({ session }: { session: Session }) {
           accounts={accounts}
           categories={categories}
           editing={form.editing}
+          defaultKind={form.kind}
           onClose={() => setForm({ open: false, editing: null })}
           onSaved={() => { setForm({ open: false, editing: null }); load(); }}
         />

@@ -14,9 +14,10 @@ Aturan kerja: bahasa Indonesia sederhana, satu langkah per pesan, tunggu konfirm
 - Tahap 6: PWA (manifest, ikon, service worker) di folder public/ + tag di index.html. Bisa dipasang di Android/iPhone.
 - Tahap 7: menu Analisis (grafik batang minggu/bulan/tahun, per kategori, banding periode) dan menu Lainnya = Rekening + Kalender. Nav 5 tab.
 - Tahap 8: tema gelap, menu Lainnya = Rekening/Kalender/Laporan (Excel CSV + cetak PDF)/Pengaturan (profil, kata sandi, kategori), transaksi berulang (Rencana > Berulang, diproses saat app dibuka, anti-ganda), Lupa kata sandi di login.
+- Tahap 9: Beranda baru (hero gradien, sapaan, sembunyikan saldo, filter periode hari/minggu/bulan/tahun/tanggal, grafik 7 hari, kondisi keuangan, aksi cepat, ringkasan anggaran/tabungan/utang/piutang), animasi halus, ikon menu.
 
 ## Belum
-Grafik saldo, ringkasan anggaran/tabungan/utang + filter periode di Beranda, notifikasi, backup, paket jual (schema.sql + panduan), APK (PWABuilder).
+Grafik saldo, notifikasi, backup, paket jual (schema.sql + panduan), APK (PWABuilder).
 
 ## Rencana jual (pilihan: gratis, 1 salinan per pembeli)
 Pembeli pakai akun GitHub/Vercel/Supabase sendiri. Perlu paket: kode tanpa kunci penjual, schema.sql, panduan. Vercel Hobby hanya non-komersial; jangan jual akses di akun Vercel Hobby milik penjual.
