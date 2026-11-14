@@ -79,7 +79,14 @@ function Main({ session }: { session: Session }) {
 
       {error && <p className="px-5 pt-3 text-sm text-red-700">{error}</p>}
 
-      {tab !== "beranda" && <PageHeader title={HEAD[tab][0]} sub={HEAD[tab][1]} icon={HEAD[tab][2]} colors={HEAD[tab][3]} />}
+      {tab !== "beranda" && <PageHeader title={HEAD[tab][0]} sub={HEAD[tab][1]} icon={HEAD[tab][2]} colors={HEAD[tab][3]}>
+          {tab === "transaksi" && (
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <div className="rounded-2xl bg-white/15 p-3"><p className="text-xs text-white/70">Masuk bulan ini</p><p className="font-bold text-emerald-300">{rupiah(income)}</p></div>
+              <div className="rounded-2xl bg-white/15 p-3"><p className="text-xs text-white/70">Keluar bulan ini</p><p className="font-bold">{rupiah(expense)}</p></div>
+            </div>
+          )}
+        </PageHeader>}
 
       {tab === "beranda" ? (
         <Home
@@ -114,18 +121,18 @@ function Main({ session }: { session: Session }) {
       <button
         onClick={() => setForm({ open: true, editing: null })}
         aria-label="Tambah transaksi"
-        className="no-print fixed bottom-20 right-5 z-20 h-14 w-14 rounded-full bg-emerald text-3xl leading-none text-white shadow-lg"
+        className="no-print fixed bottom-24 right-5 z-20 h-14 w-14 rounded-full bg-emerald text-3xl leading-none text-white shadow-lg"
       >
         +
       </button>
 
-      <nav className="no-print fixed inset-x-0 bottom-0 z-10 border-t border-charcoal/10 bg-white/90 backdrop-blur pb-[env(safe-area-inset-bottom)]">
+      <nav className="no-print fixed inset-x-3 bottom-3 z-10 mx-auto max-w-xl rounded-3xl border border-charcoal/10 bg-white/90 shadow-lg backdrop-blur">
         <div className="mx-auto grid max-w-xl grid-cols-5">
           {([["beranda", "Beranda"], ["transaksi", "Transaksi"], ["analisis", "Analisis"], ["rencana", "Rencana"], ["lainnya", "Lainnya"]] as const).map(([k, label]) => (
             <button
               key={k}
               onClick={() => setTab(k)}
-              className={`py-2.5 text-[11px] font-medium ${tab === k ? "border-t-2 border-gold text-navy" : "text-charcoal/60"}`}
+              className={`py-2.5 text-[11px] font-medium ${tab === k ? "rounded-2xl bg-navy/10 font-bold text-navy" : "text-charcoal/60"}`}
             >
               <svg viewBox="0 0 24 24" className="mx-auto mb-0.5 h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={ICONS[k]} /></svg>
               {label}
