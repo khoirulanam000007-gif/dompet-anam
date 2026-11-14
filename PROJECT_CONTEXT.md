@@ -5,11 +5,12 @@ Aturan kerja: bahasa Indonesia sederhana, satu langkah per pesan, tunggu konfirm
 ## Sudah selesai
 - Akun GitHub, Vercel, Supabase (gratis). Proyek Supabase: dompet-anam (Seoul).
 - Database: tabel + RLS + view account_balances, goal_progress, debt_status (SQL sudah dijalankan).
-- Tahap 1 kode: kerangka proyek, login/daftar, Beranda (total saldo + daftar rekening).
+- Tahap 1: kerangka, login/daftar, Beranda. Deploy Vercel berhasil, akun pertama sudah dibuat, konfirmasi email dimatikan.
+- Tahap 2: menu bawah (Beranda/Transaksi), form tambah/ubah/hapus pemasukan & pengeluaran, riwayat, ringkasan bulan ini.
 - Kunci publik ada di src/lib/config.ts (URL + publishable key). Jangan pakai service_role.
 
 ## Belum
-Form pemasukan/pengeluaran, riwayat, rekening, transfer, anggaran, tabungan, utang-piutang,
+Halaman rekening (tambah/ubah), transfer, anggaran, tabungan, utang-piutang,
 kalender, analisis, laporan PDF/Excel, transaksi berulang, pengaturan/tema gelap, PWA, APK.
 
 ## Catatan
