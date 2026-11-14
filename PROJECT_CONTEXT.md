@@ -16,9 +16,10 @@ Aturan kerja: bahasa Indonesia sederhana, satu langkah per pesan, tunggu konfirm
 - Tahap 8: tema gelap, menu Lainnya = Rekening/Kalender/Laporan (Excel CSV + cetak PDF)/Pengaturan (profil, kata sandi, kategori), transaksi berulang (Rencana > Berulang, diproses saat app dibuka, anti-ganda), Lupa kata sandi di login.
 - Tahap 9: Beranda baru (hero gradien, sapaan, sembunyikan saldo, filter periode hari/minggu/bulan/tahun/tanggal, grafik 7 hari, kondisi keuangan, aksi cepat, ringkasan anggaran/tabungan/utang/piutang), animasi halus, ikon menu.
 - Tahap 10: skor keuangan (0-100) + streak, pengingat jatuh tempo utang, panduan awal, pencarian/filter transaksi, kunci PIN (lokal), cadangan data JSON.
+- Tahap 11: desain premium merata: font Plus Jakarta Sans, header berwarna tiap halaman, ikon kategori, transaksi dikelompokkan per tanggal, kartu rekening bergradien, tren saldo 30 hari, login baru, tombol gradien, nav kaca.
 
 ## Belum
-Grafik saldo, notifikasi push, pemulihan data dari cadangan, paket jual (schema.sql + panduan), APK (PWABuilder).
+Notifikasi push, pemulihan data dari cadangan, paket jual (schema.sql + panduan), APK (PWABuilder).
 
 ## Rencana jual (pilihan: gratis, 1 salinan per pembeli)
 Pembeli pakai akun GitHub/Vercel/Supabase sendiri. Perlu paket: kode tanpa kunci penjual, schema.sql, panduan. Vercel Hobby hanya non-komersial; jangan jual akses di akun Vercel Hobby milik penjual.

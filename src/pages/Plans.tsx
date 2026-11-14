@@ -4,6 +4,7 @@ import { rupiah } from "../lib/format";
 import { fmtDate } from "../lib/types";
 import type { Account, Category } from "../lib/types";
 import { processRecurring } from "../lib/recurring";
+import { catIcon } from "../lib/icons";
 
 type Budget = { id: string; category_id: string; limit_amount: number };
 type Goal = { id: string; name: string; target_amount: number; target_date: string | null; saved_amount: number };
@@ -111,7 +112,7 @@ function Budgets({ categories }: { categories: Category[] }) {
           const over = pct >= 100, warn = pct >= 80;
           return (
             <li key={b.id} className="rounded-2xl bg-white px-4 py-3 shadow-sm">
-              <div className="flex justify-between"><span className="font-medium">{catName(b.category_id)}</span><span>{pct}%</span></div>
+              <div className="flex justify-between"><span className="font-medium">{catIcon(catName(b.category_id))} {catName(b.category_id)}</span><span>{pct}%</span></div>
               <Bar pct={pct} color={over ? "bg-red-600" : warn ? "bg-gold" : "bg-emerald"} />
               <p className="mt-2 text-sm">Terpakai {rupiah(used)} dari {rupiah(b.limit_amount)}</p>
               <p className={`text-sm ${over ? "text-red-700" : "text-charcoal/70"}`}>

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { rupiah } from "../lib/format";
 import type { Category } from "../lib/types";
+import { catIcon } from "../lib/icons";
 
 type Row = { type: string; amount: number; category_id: string | null; occurred_at: string };
 type P = "minggu" | "bulan" | "tahun";
@@ -17,7 +18,46 @@ function range(p: P, off: number): [Date, Date] {
   return [s, new Date(s.getFullYear(), s.getMonth(), s.getDate() + 7)];
 }
 
-export default function Analysis({ categories }: { categories: Category[] }) {
+function BalanceTrend({ total }: { total: number }) {
+  const [pts, setPts] = useState<number[]>([]);
+  useEffect(() => {
+    const n = new Date();
+    const s = new Date(n.getFullYear(), n.getMonth(), n.getDate() - 29);
+    supabase.from("transactions").select("type,amount,occurred_at").gte("occurred_at", s.toISOString()).then(({ data }) => {
+      const delta = new Array(30).fill(0);
+      (data ?? []).forEach((x) => {
+        const d = new Date(x.occurred_at);
+        const i = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() - s.getTime()) / 86400000);
+        const sign = ["income", "saving_withdraw", "debt_borrow", "loan_receive"].includes(x.type) ? 1 : x.type === "transfer" ? 0 : -1;
+        if (i >= 0 && i < 30) delta[i] += sign * Number(x.amount);
+      });
+      const out: number[] = new Array(30).fill(0);
+      let bal = total;
+      for (let i = 29; i >= 0; i--) { out[i] = bal; bal -= delta[i]; }
+      setPts(out);
+    });
+  }, [total]);
+  if (pts.length === 0) return null;
+  const lo = Math.min(...pts), hi = Math.max(...pts), span = Math.max(1, hi - lo);
+  const X = (i: number) => (i / 29) * 300;
+  const Y = (v: number) => 8 + (1 - (v - lo) / span) * 64;
+  const line = pts.map((v, i) => `${i === 0 ? "M" : "L"}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(" ");
+  return (
+    <div className="rise rounded-2xl bg-white p-4 shadow-sm">
+      <div className="flex items-end justify-between">
+        <div><p className="text-xs text-charcoal/60">Tren saldo 30 hari</p><p className="text-xl font-bold text-navy">{rupiah(total)}</p></div>
+        <p className="text-xs text-charcoal/60">{pts[29] >= pts[0] ? "▲" : "▼"} {rupiah(Math.abs(pts[29] - pts[0]))}</p>
+      </div>
+      <svg viewBox="0 0 300 80" className="mt-2 h-24 w-full" preserveAspectRatio="none">
+        <defs><linearGradient id="bt" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0f9d6b" stopOpacity="0.35" /><stop offset="100%" stopColor="#0f9d6b" stopOpacity="0" /></linearGradient></defs>
+        <path d={`${line} L300,80 L0,80 Z`} fill="url(#bt)" />
+        <path d={line} fill="none" stroke="#0f9d6b" strokeWidth="2" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      </svg>
+    </div>
+  );
+}
+
+export default function Analysis({ categories, total }: { categories: Category[]; total: number }) {
   const [p, setP] = useState<P>("bulan");
   const [off, setOff] = useState(0);
   const [cur, setCur] = useState<Row[]>([]);
@@ -66,7 +106,8 @@ export default function Analysis({ categories }: { categories: Category[] }) {
 
   return (
     <section className="px-5 pt-5">
-      <div className="grid grid-cols-3 gap-2 rounded-xl bg-charcoal/10 p-1">
+      <BalanceTrend total={total} />
+      <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-charcoal/10 p-1">
         {(["minggu", "bulan", "tahun"] as const).map((v) => (
           <button key={v} onClick={() => { setP(v); setOff(0); }} className={`rounded-lg py-2 font-medium capitalize ${p === v ? "bg-navy text-white" : ""}`}>{v}</button>
         ))}
@@ -109,7 +150,7 @@ export default function Analysis({ categories }: { categories: Category[] }) {
         {cats.length === 0 && <li className="text-charcoal/60">Belum ada pengeluaran.</li>}
         {cats.map(([id, v]) => (
           <li key={id}>
-            <div className="flex justify-between text-sm"><span>{catName(id)}</span><span>{rupiah(v)} · {Math.round((v / exp) * 100)}%</span></div>
+            <div className="flex justify-between text-sm"><span>{catIcon(catName(id))} {catName(id)}</span><span>{rupiah(v)} · {Math.round((v / exp) * 100)}%</span></div>
             <div className="mt-1 h-2 overflow-hidden rounded-full bg-charcoal/10"><div className="h-full bg-gold" style={{ width: `${(v / exp) * 100}%` }} /></div>
           </li>
         ))}

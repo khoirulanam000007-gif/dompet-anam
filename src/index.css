@@ -6,7 +6,7 @@
   --color-paper: #f7f6f2;
   --color-charcoal: #2b2f36;
   --color-gold: #c9a961;
-  --font-sans: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  --font-sans: "Plus Jakarta Sans", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
 }
 
 body {
@@ -43,3 +43,14 @@ input, select { color: var(--color-charcoal); }
 .grow { transform-origin: bottom; animation: grow 0.6s ease both; }
 .chips::-webkit-scrollbar { display: none; }
 @media (prefers-reduced-motion: reduce) { .rise, .grow { animation: none; } }
+
+/* ===== Tampilan premium ===== */
+body { font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; }
+h1, h2, h3 { letter-spacing: -0.01em; }
+.shadow-sm { box-shadow: 0 1px 2px rgba(11, 31, 58, 0.06), 0 10px 24px -14px rgba(11, 31, 58, 0.28); }
+.bg-emerald { background-image: linear-gradient(135deg, #13b57f, #0c8a5e); }
+.bg-navy { background-image: linear-gradient(135deg, #14305a, #0b1f3a); }
+.bg-gold { background-image: linear-gradient(135deg, #d8bb78, #c9a961); }
+.dark .bg-navy { background-image: none; }
+button { transition: transform 0.12s ease, opacity 0.12s ease; }
+button:active { transform: scale(0.97); }

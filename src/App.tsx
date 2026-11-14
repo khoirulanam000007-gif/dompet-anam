@@ -12,7 +12,15 @@ import TransferForm from "./components/TransferForm";
 import More from "./pages/More";
 import Analysis from "./pages/Analysis";
 import Home from "./pages/Home";
+import PageHeader from "./components/PageHeader";
 import Plans from "./pages/Plans";
+
+const HEAD: Record<string, [string, string, string, [string, string]]> = {
+  transaksi: ["Transaksi", "Semua catatan uang masuk dan keluar", "🧾", ["#0b1f3a", "#14527a"]],
+  analisis: ["Analisis", "Pahami ke mana uang Anda pergi", "📈", ["#0b3a3a", "#0f8a63"]],
+  rencana: ["Rencana", "Anggaran, tabungan, utang, dan jadwal", "🎯", ["#3a2a0b", "#9a7a2e"]],
+  lainnya: ["Lainnya", "Rekening, kalender, laporan, dan pengaturan", "✨", ["#1a2236", "#3f5483"]],
+};
 
 const ICONS: Record<string, string> = {
   beranda: "M3 11l9-8 9 8M5 10v10h14V10",
@@ -71,6 +79,8 @@ function Main({ session }: { session: Session }) {
 
       {error && <p className="px-5 pt-3 text-sm text-red-700">{error}</p>}
 
+      {tab !== "beranda" && <PageHeader title={HEAD[tab][0]} sub={HEAD[tab][1]} icon={HEAD[tab][2]} colors={HEAD[tab][3]} />}
+
       {tab === "beranda" ? (
         <Home
           accounts={accounts}
@@ -83,14 +93,13 @@ function Main({ session }: { session: Session }) {
           onChanged={load}
         />
       ) : tab === "analisis" ? (
-        <Analysis categories={categories} />
+        <Analysis categories={categories} total={total} />
       ) : tab === "lainnya" ? (
         <More accounts={accounts} categories={categories} onChanged={load} onTransfer={() => setTransfer(true)} />
       ) : tab === "rencana" ? (
         <Plans accounts={accounts} categories={categories} onChanged={load} />
       ) : (
         <>
-          <h2 className="px-5 pt-5 text-lg font-semibold text-navy">Riwayat transaksi</h2>
           <Transactions
             searchable
             txs={txs}
@@ -110,7 +119,7 @@ function Main({ session }: { session: Session }) {
         +
       </button>
 
-      <nav className="no-print fixed inset-x-0 bottom-0 z-10 border-t border-charcoal/10 bg-white pb-[env(safe-area-inset-bottom)]">
+      <nav className="no-print fixed inset-x-0 bottom-0 z-10 border-t border-charcoal/10 bg-white/90 backdrop-blur pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto grid max-w-xl grid-cols-5">
           {([["beranda", "Beranda"], ["transaksi", "Transaksi"], ["analisis", "Analisis"], ["rencana", "Rencana"], ["lainnya", "Lainnya"]] as const).map(([k, label]) => (
             <button

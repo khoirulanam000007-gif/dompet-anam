@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { rupiah } from "../lib/format";
-import { fmtDate } from "../lib/types";
+import { catIcon } from "../lib/icons";
 import type { Account, Category, Tx } from "../lib/types";
 
 type Props = {
@@ -12,6 +12,21 @@ type Props = {
   onChanged: () => void;
   searchable?: boolean;
 };
+
+const NAMES: Record<string, string> = {
+  transfer: "Transfer", saving_deposit: "Setoran tabungan", saving_withdraw: "Penarikan tabungan",
+  debt_borrow: "Pinjaman diterima", loan_give: "Pinjaman diberikan", debt_repay: "Pembayaran utang", loan_receive: "Penerimaan piutang",
+};
+const PLUS = ["income", "saving_withdraw", "debt_borrow", "loan_receive"];
+
+const dayKey = (iso: string) => { const d = new Date(iso); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; };
+function dayLabel(iso: string) {
+  const d = new Date(iso), n = new Date();
+  const diff = Math.round((new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime() - new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()) / 86400000);
+  if (diff === 0) return "Hari ini";
+  if (diff === 1) return "Kemarin";
+  return d.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" });
+}
 
 export default function Transactions({ txs, accounts, categories, onEdit, onChanged, searchable }: Props) {
   const [q, setQ] = useState("");
@@ -33,54 +48,67 @@ export default function Transactions({ txs, accounts, categories, onEdit, onChan
   );
 
   if (txs.length === 0)
-    return <p className="px-5 pt-8 text-charcoal/70">Belum ada transaksi. Tekan tombol + untuk mencatat yang pertama.</p>;
+    return (
+      <div className="px-5 pt-8 text-center">
+        <p className="text-5xl">🧾</p>
+        <p className="mt-2 font-semibold text-navy">Belum ada transaksi</p>
+        <p className="text-sm text-charcoal/60">Tekan tombol + untuk mencatat yang pertama.</p>
+      </div>
+    );
 
+  let last = "";
   return (
     <>
       {searchable && (
-        <div className="px-5 pt-3">
+        <div className="px-5 pt-4">
           <input
-            className="w-full rounded-xl border border-charcoal/15 bg-white px-4 py-2.5 outline-none focus:border-emerald"
-            placeholder="Cari kategori, catatan, atau rekening"
+            className="w-full rounded-2xl border border-charcoal/15 bg-white px-4 py-3 outline-none focus:border-emerald focus:ring-2 focus:ring-emerald/30"
+            placeholder="🔍  Cari kategori, catatan, atau rekening"
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
           <div className="mt-2 flex gap-2 text-sm">
             {([["all", "Semua"], ["income", "Masuk"], ["expense", "Keluar"]] as const).map(([k, l]) => (
-              <button key={k} onClick={() => setF(k)} className={`rounded-full px-3 py-1 ${f === k ? "bg-navy text-white" : "bg-charcoal/10"}`}>{l}</button>
+              <button key={k} onClick={() => setF(k)} className={`rounded-full px-4 py-1.5 font-medium ${f === k ? "bg-navy text-white" : "bg-charcoal/10"}`}>{l}</button>
             ))}
           </div>
         </div>
       )}
-    <ul className="space-y-2 px-5 pt-4">
-      {shown.length === 0 && <li className="text-charcoal/60">Tidak ada transaksi yang cocok.</li>}
-      {shown.map((t) => {
-        const isTransfer = t.type === "transfer";
-        const plus = ["income", "saving_withdraw", "debt_borrow", "loan_receive"].includes(t.type);
-        const label = isTransfer ? "Transfer" : t.type === "saving_deposit" ? "Setoran tabungan" : t.type === "saving_withdraw" ? "Penarikan tabungan" : ({ debt_borrow: "Pinjaman diterima", loan_give: "Pinjaman diberikan", debt_repay: "Pembayaran utang", loan_receive: "Penerimaan piutang" } as Record<string, string>)[t.type] ?? cat(t.category_id);
-        const editable = plus || t.type === "expense";
-        return (
-          <li key={t.id} className="rounded-2xl bg-white px-4 py-3 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="font-medium">{label}</span>
-              <span className={`font-semibold ${plus ? "text-emerald" : "text-charcoal"}`}>
-                {isTransfer ? "" : plus ? "+" : "-"}{rupiah(t.amount)}
-              </span>
-            </div>
-            <p className="text-sm text-charcoal/60">
-              {isTransfer ? `${acc(t.account_id)} → ${acc(t.to_account_id)}` : acc(t.account_id)} · {fmtDate(t.occurred_at)}
-            </p>
-            {(t.source || t.note) && <p className="text-sm">{[t.source, t.note].filter(Boolean).join(" - ")}</p>}
-            {(
-              <div className="mt-2 flex gap-4 text-sm">
-                {editable && <button onClick={() => onEdit(t)} className="text-navy underline">Ubah</button>}
-                <button onClick={() => remove(t)} className="text-red-700 underline">Hapus</button>
-              </div>
-            )}
-          </li>
-        );
-      })}
-    </ul>
+      <ul className="space-y-2 px-5 pt-4">
+        {shown.length === 0 && <li className="text-charcoal/60">Tidak ada transaksi yang cocok.</li>}
+        {shown.map((t) => {
+          const plus = PLUS.includes(t.type);
+          const editable = t.type === "income" || t.type === "expense";
+          const isTransfer = t.type === "transfer";
+          const label = NAMES[t.type] ?? cat(t.category_id);
+          const icon = editable ? catIcon(cat(t.category_id)) : isTransfer ? "🔁" : t.type.startsWith("saving") ? "🐖" : "🤝";
+          const dk = dayKey(t.occurred_at);
+          const head = searchable && dk !== last;
+          last = dk;
+          return (
+            <Fragment key={t.id}>
+              {head && <li className="pt-2 text-xs font-semibold uppercase tracking-wide text-charcoal/50">{dayLabel(t.occurred_at)}</li>}
+              <li className="rise rounded-2xl bg-white px-3 py-3 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xl" style={{ background: plus ? "rgba(15,157,107,.14)" : "rgba(201,169,97,.22)" }}>{icon}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold">{label}</p>
+                    <p className="truncate text-xs text-charcoal/60">
+                      {isTransfer ? `${acc(t.account_id)} → ${acc(t.to_account_id)}` : acc(t.account_id)} · {new Date(t.occurred_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                    {(t.source || t.note) && <p className="truncate text-xs text-charcoal/70">{[t.source, t.note].filter(Boolean).join(" · ")}</p>}
+                  </div>
+                  <span className={`shrink-0 font-bold ${plus ? "text-emerald" : ""}`}>{isTransfer ? "" : plus ? "+" : "-"}{rupiah(t.amount)}</span>
+                </div>
+                <div className="ml-14 mt-1 flex gap-4 text-xs">
+                  {editable && <button onClick={() => onEdit(t)} className="text-navy underline">Ubah</button>}
+                  <button onClick={() => remove(t)} className="text-red-700 underline">Hapus</button>
+                </div>
+              </li>
+            </Fragment>
+          );
+        })}
+      </ul>
     </>
   );
 }

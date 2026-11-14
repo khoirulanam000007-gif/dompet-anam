@@ -41,8 +41,12 @@ export default function Login() {
     "w-full rounded-xl border border-charcoal/15 bg-white px-4 py-3 text-base outline-none focus:border-emerald focus:ring-2 focus:ring-emerald/30";
 
   return (
-    <main className="min-h-screen bg-navy flex items-center justify-center p-5">
-      <div className="w-full max-w-sm rounded-3xl bg-paper p-7 shadow-xl">
+    <main className="hero flex min-h-screen flex-col items-center justify-center p-5">
+      <div className="rise mb-6 text-center text-white">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border-2 border-gold text-xl font-bold">DA</div>
+        <p className="mt-3 text-sm text-white/80">Kelola uang dengan rapi, tenang, dan terarah.</p>
+      </div>
+      <div className="rise w-full max-w-sm rounded-3xl bg-paper p-7 shadow-xl" style={{ animationDelay: "80ms" }}>
         <h1 className="text-2xl font-semibold tracking-wide text-navy">DOMPET ANAM</h1>
         <p className="mt-1 text-sm text-charcoal/70">Catat keuangan pribadi Anda.</p>
         <div className="mt-1 h-0.5 w-10 bg-gold" />

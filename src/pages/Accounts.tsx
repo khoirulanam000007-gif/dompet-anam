@@ -2,6 +2,14 @@ import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import { rupiah } from "../lib/format";
 import type { Account } from "../lib/types";
+import { ACC_ICON } from "../lib/icons";
+
+const GRAD: Record<string, string> = {
+  cash: "linear-gradient(135deg,#0f6b52,#13b57f)",
+  bank: "linear-gradient(135deg,#0b1f3a,#1f5a9a)",
+  ewallet: "linear-gradient(135deg,#7a5c1e,#c9a961)",
+  other: "linear-gradient(135deg,#2b2f36,#55607a)",
+};
 
 const TYPES: Record<string, string> = {
   cash: "Uang tunai",
@@ -60,17 +68,15 @@ export default function Accounts({ accounts, onChanged, onTransfer }: Props) {
         </div>
       </div>
 
-      <ul className="mt-3 space-y-2">
+      <ul className="mt-3 grid gap-3">
         {accounts.map((a) => (
-          <li key={a.id} className="rounded-2xl bg-white px-4 py-3 shadow-sm">
-            <div className="flex items-center justify-between">
-              <span className="font-medium">{a.name}</span>
-              <span className="font-semibold">{rupiah(a.balance)}</span>
-            </div>
-            <p className="text-sm text-charcoal/60">{TYPES[a.type] ?? a.type}</p>
-            <div className="mt-2 flex gap-4 text-sm">
-              <button onClick={() => open(a)} className="text-navy underline">Ubah</button>
-              <button onClick={() => remove(a)} className="text-red-700 underline">Hapus</button>
+          <li key={a.id} className="rise overflow-hidden rounded-3xl p-4 text-white shadow-sm" style={{ background: GRAD[a.type] ?? GRAD.other }}>
+            <p className="text-sm text-white/80">{ACC_ICON[a.type] ?? "💳"} {TYPES[a.type] ?? a.type}</p>
+            <p className="mt-3 text-sm text-white/80">{a.name}</p>
+            <p className="text-2xl font-bold tracking-tight">{rupiah(a.balance)}</p>
+            <div className="mt-2 flex gap-4 text-sm text-white/90">
+              <button onClick={() => open(a)} className="underline">Ubah</button>
+              <button onClick={() => remove(a)} className="underline">Hapus</button>
             </div>
           </li>
         ))}
