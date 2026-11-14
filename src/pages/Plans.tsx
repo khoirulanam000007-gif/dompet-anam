@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { confirmBox, toast } from "../lib/ui";
 import { rupiah } from "../lib/format";
 import { fmtDate } from "../lib/types";
 import type { Account, Category } from "../lib/types";
@@ -15,10 +16,32 @@ const onlyDigits = (v: string) => v.replace(/\D/g, "").slice(0, 12);
 const money = (d: string) => (d ? Number(d).toLocaleString("id-ID") : "");
 const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 
+function Ring({ pct }: { pct: number }) {
+  const p = Math.max(0, Math.min(100, pct)), C = 125.66;
+  return (
+    <svg viewBox="0 0 48 48" className="h-12 w-12 shrink-0" role="img" aria-label={`${p} persen`}>
+      <circle cx="24" cy="24" r="20" fill="none" strokeWidth="5" stroke="currentColor" className="text-charcoal/10" />
+      <circle cx="24" cy="24" r="20" fill="none" strokeWidth="5" strokeLinecap="round" stroke="#0f9d6b" className="ring-arc" strokeDasharray={C} strokeDashoffset={C * (1 - p / 100)} transform="rotate(-90 24 24)" />
+      <text x="24" y="27.5" textAnchor="middle" fontSize="11" fontWeight="700" fill="currentColor">{p}%</text>
+    </svg>
+  );
+}
+
+function goalHint(g: { saved_amount: number; target_amount: number; target_date: string | null }) {
+  const left = g.target_amount - g.saved_amount;
+  if (left <= 0) return { text: "🎉 Target tercapai! Selamat.", cls: "text-emerald font-medium" };
+  if (!g.target_date) return { text: `Sisa ${rupiah(left)} lagi.`, cls: "text-charcoal/70" };
+  const days = Math.ceil((new Date(g.target_date).getTime() - Date.now()) / 86400000);
+  if (days <= 0) return { text: `Tanggal target sudah lewat. Sisa ${rupiah(left)}.`, cls: "text-red-700" };
+  const months = Math.max(1, Math.round(days / 30.4));
+  const per = Math.ceil(left / months / 1000) * 1000;
+  return { text: `Setor sekitar ${rupiah(per)} per bulan agar tepat waktu (±${months} bulan lagi).`, cls: "text-navy" };
+}
+
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/50 sm:items-center">
-      <div className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-paper p-5 sm:rounded-3xl">
+    <div className="fade-in fixed inset-0 z-30 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center">
+      <div className="sheet-up max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-paper p-5 sm:rounded-3xl">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-navy">{title}</h3>
           <button onClick={onClose} className="text-sm underline">Tutup</button>
@@ -87,7 +110,7 @@ function Budgets({ categories }: { categories: Category[] }) {
   }
 
   async function remove(b: Budget) {
-    if (!window.confirm("Hapus anggaran ini?")) return;
+    if (!(await confirmBox("Hapus anggaran ini?", { okLabel: "Hapus" }))) return;
     await supabase.from("budgets").delete().eq("id", b.id);
     load();
   }
@@ -194,9 +217,9 @@ function Savings({ accounts, onChanged }: { accounts: Account[]; onChanged: () =
   }
 
   async function removeGoal(g: Goal) {
-    if (!window.confirm(`Hapus target ${g.name}?`)) return;
+    if (!(await confirmBox(`Hapus target ${g.name}?`, { okLabel: "Hapus" }))) return;
     const { error } = await supabase.from("savings_goals").delete().eq("id", g.id);
-    if (error) window.alert("Target ini sudah punya setoran. Hapus dulu riwayat setorannya di menu Transaksi.");
+    if (error) toast("Target ini sudah punya setoran. Hapus dulu riwayat setorannya di menu Transaksi.", "error");
     else load();
   }
 
@@ -210,9 +233,14 @@ function Savings({ accounts, onChanged }: { accounts: Account[]; onChanged: () =
           const hist = gtx.filter((x) => x.goal_id === g.id);
           return (
             <li key={g.id} className="rounded-2xl bg-white px-4 py-3 shadow-sm">
-              <div className="flex justify-between"><span className="font-medium">{g.name}</span><span>{pct}%</span></div>
-              <Bar pct={pct} color="bg-emerald" />
-              <p className="mt-2 text-sm">{rupiah(g.saved_amount)} dari {rupiah(g.target_amount)}</p>
+              <div className="flex items-center gap-3">
+                <Ring pct={pct} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold">{g.name}</p>
+                  <p className="text-sm text-charcoal/70">{rupiah(g.saved_amount)} dari {rupiah(g.target_amount)}</p>
+                </div>
+              </div>
+              <p className={`mt-2 text-sm ${goalHint(g).cls}`}>{goalHint(g).text}</p>
               {g.target_date && <p className="text-sm text-charcoal/60">Target: {new Date(g.target_date).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</p>}
               <div className="mt-2 flex flex-wrap gap-4 text-sm">
                 <button onClick={() => openMv(g, "saving_deposit")} className="text-emerald underline">Setor</button>
@@ -341,10 +369,10 @@ function Debts({ accounts, onChanged }: { accounts: Account[]; onChanged: () => 
   }
 
   async function remove(d: Debt) {
-    if (!window.confirm(`Hapus catatan ${d.person_name} beserta semua pembayarannya? Saldo rekening akan dihitung ulang.`)) return;
+    if (!(await confirmBox(`Hapus catatan ${d.person_name} beserta semua pembayarannya? Saldo rekening akan dihitung ulang.`, { okLabel: "Hapus" }))) return;
     const a = await supabase.from("transactions").delete().eq("debt_id", d.id);
     const b = a.error ? a : await supabase.from("debts").delete().eq("id", d.id);
-    if (b.error) window.alert("Gagal menghapus. Coba lagi.");
+    if (b.error) toast("Gagal menghapus. Coba lagi.", "error");
     load(); onChanged();
   }
 
@@ -466,9 +494,9 @@ function Recurring({ accounts, categories }: { accounts: Account[]; categories: 
   }
   async function toggle(r: Rule) { await supabase.from("recurring_rules").update({ active: !r.active }).eq("id", r.id); load(); }
   async function remove(r: Rule) {
-    if (!window.confirm(`Hapus jadwal ${r.name}?`)) return;
+    if (!(await confirmBox(`Hapus jadwal ${r.name}?`, { okLabel: "Hapus" }))) return;
     const { error } = await supabase.from("recurring_rules").delete().eq("id", r.id);
-    if (error) window.alert("Jadwal ini sudah membuat transaksi, jadi tidak bisa dihapus. Pakai tombol Jeda saja.");
+    if (error) toast("Jadwal ini sudah membuat transaksi, jadi tidak bisa dihapus. Pakai tombol Jeda saja.", "error");
     else load();
   }
   const cats = categories.filter((c) => c.kind === type);

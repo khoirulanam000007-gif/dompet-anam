@@ -14,6 +14,8 @@ import Analysis from "./pages/Analysis";
 import Home from "./pages/Home";
 import PageHeader from "./components/PageHeader";
 import Plans from "./pages/Plans";
+import HomeSkeleton from "./components/Skeleton";
+import { toast } from "./lib/ui";
 
 const HEAD: Record<string, [string, string, string, [string, string]]> = {
   transaksi: ["Transaksi", "Semua catatan uang masuk dan keluar", "🧾", ["#0b1f3a", "#14527a"]],
@@ -81,7 +83,9 @@ function Main({ session }: { session: Session }) {
 
       {tab !== "beranda" && <PageHeader title={HEAD[tab][0]} sub={HEAD[tab][1]} icon={HEAD[tab][2]} colors={HEAD[tab][3]} />}
 
-      {tab === "beranda" ? (
+      {tab === "beranda" && !loaded ? (
+        <HomeSkeleton />
+      ) : tab === "beranda" ? (
         <Home
           accounts={accounts}
           categories={categories}
@@ -135,7 +139,7 @@ function Main({ session }: { session: Session }) {
       </nav>
 
       {transfer && (
-        <TransferForm accounts={accounts} onClose={() => setTransfer(false)} onSaved={() => { setTransfer(false); load(); }} />
+        <TransferForm accounts={accounts} onClose={() => setTransfer(false)} onSaved={() => { setTransfer(false); load(); toast("Transfer tersimpan", "ok"); }} />
       )}
 
       {form.open && (
@@ -145,7 +149,7 @@ function Main({ session }: { session: Session }) {
           editing={form.editing}
           defaultKind={form.kind}
           onClose={() => setForm({ open: false, editing: null })}
-          onSaved={() => { setForm({ open: false, editing: null }); load(); }}
+          onSaved={() => { setForm({ open: false, editing: null }); load(); toast(form.editing ? "Perubahan tersimpan" : "Transaksi tersimpan", "ok"); }}
         />
       )}
     </div>

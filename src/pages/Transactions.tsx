@@ -1,5 +1,6 @@
 import { Fragment, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { confirmBox, toast } from "../lib/ui";
 import { rupiah } from "../lib/format";
 import { catIcon } from "../lib/icons";
 import type { Account, Category, Tx } from "../lib/types";
@@ -35,9 +36,9 @@ export default function Transactions({ txs, accounts, categories, onEdit, onChan
   const cat = (id: string | null) => categories.find((c) => c.id === id)?.name ?? "Tanpa kategori";
 
   async function remove(t: Tx) {
-    if (!window.confirm("Hapus transaksi ini? Saldo akan dihitung ulang.")) return;
+    if (!(await confirmBox("Hapus transaksi ini? Saldo akan dihitung ulang.", { okLabel: "Hapus" }))) return;
     const { error } = await supabase.from("transactions").delete().eq("id", t.id);
-    if (error) window.alert("Gagal menghapus. Coba lagi.");
+    if (error) toast("Gagal menghapus. Coba lagi.", "error");
     else onChanged();
   }
 

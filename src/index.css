@@ -54,3 +54,22 @@ h1, h2, h3 { letter-spacing: -0.01em; }
 .dark .bg-navy { background-image: none; }
 button { transition: transform 0.12s ease, opacity 0.12s ease; }
 button:active { transform: scale(0.97); }
+
+/* ===== Tahap 14: gerak & detail premium ===== */
+@keyframes sheetUp { from { transform: translateY(36px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pop { from { transform: scale(0.94); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes toastIn { from { transform: translateY(-14px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+.sheet-up { animation: sheetUp 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.fade-in { animation: fadeIn 0.2s ease both; }
+.pop { animation: pop 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.toast-in { animation: toastIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.skeleton { background: linear-gradient(90deg, rgba(11, 31, 58, 0.06) 25%, rgba(11, 31, 58, 0.13) 37%, rgba(11, 31, 58, 0.06) 63%); background-size: 400% 100%; animation: shimmer 1.4s ease infinite; border-radius: 1rem; }
+.dark .skeleton { background-image: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.11) 37%, rgba(255, 255, 255, 0.05) 63%); background-size: 400% 100%; }
+html { -webkit-tap-highlight-color: transparent; scroll-behavior: smooth; }
+::selection { background: rgba(201, 169, 97, 0.35); }
+:focus-visible { outline: 2px solid #c9a961; outline-offset: 2px; }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: none; }
+.ring-arc { transition: stroke-dashoffset 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@media (prefers-reduced-motion: reduce) { .sheet-up, .fade-in, .pop, .toast-in, .skeleton, .ring-arc { animation: none; transition: none; } html { scroll-behavior: auto; } }

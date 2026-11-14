@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { rupiah } from "../lib/format";
 import { catIcon } from "../lib/icons";
+import { useCountUp } from "../lib/anim";
 import type { Account, Category, Tx } from "../lib/types";
 import Transactions from "./Transactions";
 
@@ -44,6 +45,8 @@ export default function Home({ accounts, categories, txs, total, onAdd, onTransf
   const [mInc, setMInc] = useState(0);
   const [mExp, setMExp] = useState(0);
   const [top, setTop] = useState<{ id: string; v: number }[]>([]);
+  const [prev, setPrev] = useState(0);
+  const animTotal = useCountUp(total);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -64,6 +67,8 @@ export default function Home({ accounts, categories, txs, total, onAdd, onTransf
     const n = new Date();
     const w0 = new Date(n.getFullYear(), n.getMonth(), n.getDate() - 6);
     const m0 = new Date(n.getFullYear(), n.getMonth(), 1);
+    const lm0 = new Date(n.getFullYear(), n.getMonth() - 1, 1);
+    const lmEnd = new Date(n.getFullYear(), n.getMonth() - 1, Math.min(n.getDate(), new Date(n.getFullYear(), n.getMonth(), 0).getDate()) + 1);
     const mKey = `${m0.getFullYear()}-${String(m0.getMonth() + 1).padStart(2, "0")}-01`;
     Promise.all([
       supabase.from("transactions").select("type,amount,occurred_at").in("type", ["income", "expense"]).gte("occurred_at", w0.toISOString()),
@@ -71,7 +76,9 @@ export default function Home({ accounts, categories, txs, total, onAdd, onTransf
       supabase.from("transactions").select("type,category_id,amount").in("type", ["income", "expense"]).gte("occurred_at", m0.toISOString()),
       supabase.from("goal_progress").select("saved_amount,target_amount"),
       supabase.from("debt_status").select("kind,remaining_amount,due_date,person_name,is_paid"),
-    ]).then(([w, b, sp, g, d]) => {
+      supabase.from("transactions").select("amount").eq("type", "expense").gte("occurred_at", lm0.toISOString()).lt("occurred_at", lmEnd.toISOString()),
+    ]).then(([w, b, sp, g, d, pm]) => {
+      setPrev((pm.data ?? []).reduce((a, x) => a + Number(x.amount), 0));
       const days = Array.from({ length: 7 }, (_, i) => new Date(w0.getFullYear(), w0.getMonth(), w0.getDate() + i));
       setWeek(days.map((dt) => {
         const k = ymd(dt);
@@ -130,7 +137,7 @@ export default function Home({ accounts, categories, txs, total, onAdd, onTransf
           <p className="text-sm text-white/70">Total saldo</p>
           <button onClick={() => { const v = !hide; setHide(v); localStorage.setItem("hide", v ? "1" : "0"); }} className="text-xs text-white/80 underline">{hide ? "Tampilkan" : "Sembunyikan"}</button>
         </div>
-        <p className="rise text-4xl font-semibold tracking-tight" style={{ animationDelay: "90ms" }}>{money(total)}</p>
+        <p className="rise text-4xl font-semibold tracking-tight" style={{ animationDelay: "90ms" }}>{money(animTotal)}</p>
         <div className="mt-2 h-0.5 w-10 bg-gold" />
 
         <div className="chips -mx-5 mt-4 flex gap-2 overflow-x-auto px-5">
@@ -176,7 +183,13 @@ export default function Home({ accounts, categories, txs, total, onAdd, onTransf
 
         {top.length > 0 && (
           <div className={card}>
-            <p className="font-medium text-navy">Pengeluaran terbesar bulan ini</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="font-medium text-navy">Pengeluaran terbesar bulan ini</p>
+              {prev > 0 && (() => {
+                const d = Math.round(((mExp - prev) / prev) * 100), down = d <= 0;
+                return <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${down ? "bg-emerald/15 text-emerald" : "bg-red-100 text-red-700"}`}>{down ? "↓" : "↑"} {Math.abs(d)}% vs bulan lalu</span>;
+              })()}
+            </div>
             {top.map((t) => {
               const nm = categories.find((c) => c.id === t.id)?.name ?? "Lainnya";
               return (

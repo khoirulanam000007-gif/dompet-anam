@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { confirmBox, toast } from "../lib/ui";
 import { restoreBackup } from "../lib/restore";
 import type { Category } from "../lib/types";
 
@@ -18,7 +19,7 @@ export function LockScreen({ onUnlock }: { onUnlock: () => void }) {
     else { setErr("PIN salah."); setPin(""); }
   }
   async function forgot() {
-    if (!window.confirm("Keluar dari akun dan hapus PIN? Anda perlu masuk lagi dengan email dan kata sandi.")) return;
+    if (!(await confirmBox("Keluar dari akun dan hapus PIN? Anda perlu masuk lagi dengan email dan kata sandi.", { okLabel: "Keluar" }))) return;
     localStorage.removeItem("pin");
     await supabase.auth.signOut();
     onUnlock();
@@ -97,9 +98,9 @@ export default function Settings({ categories, onChanged }: { categories: Catego
     const f = e.target.files?.[0];
     e.target.value = "";
     if (!f) return;
-    if (!window.confirm("Pulihkan data dari file ini? Data yang sudah ada tidak dihapus. Data dari cadangan akan ditambahkan atau diperbarui.")) return;
+    if (!(await confirmBox("Pulihkan data dari file ini? Data yang sudah ada tidak dihapus. Data dari cadangan akan ditambahkan atau diperbarui.", { danger: false, okLabel: "Pulihkan" }))) return;
     setBusy(true); setMsg("Memulihkan data…");
-    try { setMsg(await restoreBackup(await f.text())); onChanged(); }
+    try { setMsg(await restoreBackup(await f.text())); toast("Data berhasil dipulihkan", "ok"); onChanged(); }
     catch (err) { setMsg(err instanceof Error ? err.message : "Gagal memulihkan. Coba lagi."); }
     setBusy(false);
   }
@@ -135,9 +136,9 @@ export default function Settings({ categories, onChanged }: { categories: Catego
     if (!error) { setCName(""); onChanged(); }
   }
   async function delCat(c: Category) {
-    if (!window.confirm(`Hapus kategori ${c.name}?`)) return;
+    if (!(await confirmBox(`Hapus kategori ${c.name}?`, { okLabel: "Hapus" }))) return;
     const { error } = await supabase.from("categories").delete().eq("id", c.id);
-    if (error) window.alert("Kategori ini sudah dipakai transaksi atau anggaran, jadi tidak bisa dihapus.");
+    if (error) toast("Kategori ini sudah dipakai transaksi atau anggaran, jadi tidak bisa dihapus.", "error");
     else onChanged();
   }
 

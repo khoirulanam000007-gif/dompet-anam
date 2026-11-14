@@ -96,6 +96,9 @@ export default function Analysis({ categories, total }: { categories: Category[]
   const byCat: Record<string, number> = {};
   cur.filter((r) => r.type === "expense").forEach((r) => { const k = r.category_id ?? "-"; byCat[k] = (byCat[k] ?? 0) + r.amount; });
   const cats = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+  const PAL = ["#0b1f3a", "#0f9d6b", "#c9a961", "#14527a", "#7aa7a0", "#9a7a2e"];
+  const rest = cats.slice(5).reduce((a, [, v]) => a + v, 0);
+  const segs = [...cats.slice(0, 5).map(([id, v], i) => ({ id, v, c: PAL[i] })), ...(rest > 0 ? [{ id: "~", v: rest, c: PAL[5] }] : [])];
   const catName = (id: string) => categories.find((c) => c.id === id)?.name ?? "Tanpa kategori";
 
   const title = p === "tahun" ? String(start.getFullYear())
@@ -146,6 +149,25 @@ export default function Analysis({ categories, total }: { categories: Category[]
       </div>
 
       <h2 className="mt-6 text-lg font-semibold text-navy">Pengeluaran per kategori</h2>
+      {exp > 0 && segs.length > 0 && (
+        <div className="mt-2 flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm">
+          <svg viewBox="0 0 120 120" className="h-28 w-28 shrink-0" role="img" aria-label="Diagram pengeluaran per kategori">
+            <circle cx="60" cy="60" r="40" fill="none" strokeWidth="16" stroke="currentColor" className="text-charcoal/10" />
+            {(() => { let off = 0; return segs.map((x) => { const len = (x.v / exp) * 251.33; const el = <circle key={x.id} cx="60" cy="60" r="40" fill="none" strokeWidth="16" stroke={x.c} strokeDasharray={`${len} ${251.33 - len}`} strokeDashoffset={-off} transform="rotate(-90 60 60)" />; off += len; return el; }); })()}
+            <text x="60" y="58" textAnchor="middle" fontSize="17" fontWeight="700" fill="currentColor">{Math.round((segs[0].v / exp) * 100)}%</text>
+            <text x="60" y="73" textAnchor="middle" fontSize="8" fill="currentColor" opacity="0.6">terbesar</text>
+          </svg>
+          <ul className="min-w-0 flex-1 space-y-1.5 text-sm">
+            {segs.map((x) => (
+              <li key={x.id} className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: x.c }} />
+                <span className="truncate">{x.id === "~" ? "Lainnya" : catName(x.id)}</span>
+                <span className="ml-auto text-charcoal/60">{Math.round((x.v / exp) * 100)}%</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <ul className="mt-2 space-y-3 pb-4">
         {cats.length === 0 && <li className="text-charcoal/60">Belum ada pengeluaran.</li>}
         {cats.map(([id, v]) => (

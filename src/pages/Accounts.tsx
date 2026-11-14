@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
+import { confirmBox, toast } from "../lib/ui";
 import { rupiah } from "../lib/format";
 import type { Account } from "../lib/types";
 import { ACC_ICON } from "../lib/icons";
@@ -52,9 +53,9 @@ export default function Accounts({ accounts, onChanged, onTransfer }: Props) {
   }
 
   async function remove(a: Account) {
-    if (!window.confirm(`Hapus rekening ${a.name}?`)) return;
+    if (!(await confirmBox(`Hapus rekening ${a.name}?`, { okLabel: "Hapus" }))) return;
     const { error } = await supabase.from("accounts").delete().eq("id", a.id);
-    if (error) window.alert("Rekening ini sudah punya transaksi, jadi tidak bisa dihapus.");
+    if (error) toast("Rekening ini sudah punya transaksi, jadi tidak bisa dihapus.", "error");
     else onChanged();
   }
 
