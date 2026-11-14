@@ -7,6 +7,12 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+
+  async function forgot() {
+    if (!email.trim()) return setMsg("Isi email dulu, lalu tekan Lupa kata sandi.");
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin });
+    setMsg(error ? "Gagal mengirim tautan. Coba lagi nanti." : "Tautan pemulihan dikirim ke email Anda.");
+  }
   const [msg, setMsg] = useState("");
 
   async function submit() {
@@ -50,6 +56,7 @@ export default function Login() {
         </div>
 
         {msg && <p className="mt-3 text-sm text-red-700">{msg}</p>}
+        {mode === "masuk" && <button onClick={forgot} className="mt-2 text-sm text-navy underline">Lupa kata sandi?</button>}
 
         <button
           onClick={submit}

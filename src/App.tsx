@@ -4,6 +4,8 @@ import { supabase } from "./lib/supabase";
 import { rupiah } from "./lib/format";
 import type { Account, Category, Tx } from "./lib/types";
 import Login from "./pages/Login";
+import { NewPassword } from "./pages/Settings";
+import { processRecurring } from "./lib/recurring";
 import Transactions from "./pages/Transactions";
 import TransactionForm from "./components/TransactionForm";
 import TransferForm from "./components/TransferForm";
@@ -41,7 +43,10 @@ function Main({ session }: { session: Session }) {
     setLoaded(true);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    processRecurring().then((n) => { if (n > 0) load(); });
+  }, [load]);
 
   const total = accounts.reduce((s, a) => s + a.balance, 0);
   const sum = (type: string) => monthTx.filter((x) => x.type === type).reduce((s, x) => s + x.amount, 0);
@@ -50,7 +55,7 @@ function Main({ session }: { session: Session }) {
 
   return (
     <div className="mx-auto min-h-screen max-w-xl pb-28">
-      <header className="flex items-center justify-between bg-navy px-5 py-4 text-white">
+      <header className="no-print flex items-center justify-between bg-navy px-5 py-4 text-white">
         <span className="font-semibold tracking-wide">DOMPET ANAM</span>
         <button onClick={() => supabase.auth.signOut()} className="text-sm text-white/80 underline">Keluar</button>
       </header>
@@ -119,12 +124,12 @@ function Main({ session }: { session: Session }) {
       <button
         onClick={() => setForm({ open: true, editing: null })}
         aria-label="Tambah transaksi"
-        className="fixed bottom-20 right-5 z-20 h-14 w-14 rounded-full bg-emerald text-3xl leading-none text-white shadow-lg"
+        className="no-print fixed bottom-20 right-5 z-20 h-14 w-14 rounded-full bg-emerald text-3xl leading-none text-white shadow-lg"
       >
         +
       </button>
 
-      <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-charcoal/10 bg-white pb-[env(safe-area-inset-bottom)]">
+      <nav className="no-print fixed inset-x-0 bottom-0 z-10 border-t border-charcoal/10 bg-white pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto grid max-w-xl grid-cols-5">
           {([["beranda", "Beranda"], ["transaksi", "Transaksi"], ["analisis", "Analisis"], ["rencana", "Rencana"], ["lainnya", "Lainnya"]] as const).map(([k, label]) => (
             <button
@@ -158,16 +163,21 @@ function Main({ session }: { session: Session }) {
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
+  const [recovery, setRecovery] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setReady(true);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    const { data: sub } = supabase.auth.onAuthStateChange((e, s) => {
+      if (e === "PASSWORD_RECOVERY") setRecovery(true);
+      setSession(s);
+    });
     return () => sub.subscription.unsubscribe();
   }, []);
 
   if (!ready) return <div className="p-6 text-charcoal/60">Memuat...</div>;
+  if (recovery && session) return <NewPassword onDone={() => setRecovery(false)} />;
   return session ? <Main session={session} /> : <Login />;
 }

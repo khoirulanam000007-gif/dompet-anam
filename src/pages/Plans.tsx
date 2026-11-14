@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabase";
 import { rupiah } from "../lib/format";
 import { fmtDate } from "../lib/types";
 import type { Account, Category } from "../lib/types";
+import { processRecurring } from "../lib/recurring";
 
 type Budget = { id: string; category_id: string; limit_amount: number };
 type Goal = { id: string; name: string; target_amount: number; target_date: string | null; saved_amount: number };
@@ -426,16 +427,101 @@ function Debts({ accounts, onChanged }: { accounts: Account[]; onChanged: () => 
   );
 }
 
+type Rule = { id: string; name: string; type: "income" | "expense"; amount: number; account_id: string; category_id: string | null; frequency: string; next_run_date: string; active: boolean };
+const FREQ: Record<string, string> = { daily: "Harian", weekly: "Mingguan", monthly: "Bulanan" };
+
+function Recurring({ accounts, categories }: { accounts: Account[]; categories: Category[] }) {
+  const [rules, setRules] = useState<Rule[]>([]);
+  const [form, setForm] = useState(false);
+  const [name, setName] = useState("");
+  const [type, setType] = useState<"income" | "expense">("expense");
+  const [amt, setAmt] = useState("");
+  const [accId, setAccId] = useState("");
+  const [catId, setCatId] = useState("");
+  const [freq, setFreq] = useState("monthly");
+  const [date, setDate] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    const { data } = await supabase.from("recurring_rules").select("id,name,type,amount,account_id,category_id,frequency,next_run_date,active").order("next_run_date");
+    setRules((data ?? []).map((x) => ({ ...x, amount: Number(x.amount) })) as Rule[]);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  function open() {
+    setErr(""); setName(""); setAmt(""); setCatId(""); setFreq("monthly"); setType("expense");
+    setDate(new Date().toISOString().slice(0, 10)); setAccId(accounts[0]?.id ?? ""); setForm(true);
+  }
+  async function save() {
+    if (!name.trim() || Number(amt) <= 0 || !accId || !date) return setErr("Isi nama, nominal, rekening, dan tanggal mulai.");
+    setBusy(true);
+    const { error } = await supabase.from("recurring_rules").insert({
+      name: name.trim(), type, amount: Number(amt), account_id: accId, category_id: catId || null, frequency: freq, next_run_date: date,
+    });
+    setBusy(false);
+    if (error) return setErr("Gagal menyimpan. Coba lagi.");
+    setForm(false); await processRecurring(); load();
+  }
+  async function toggle(r: Rule) { await supabase.from("recurring_rules").update({ active: !r.active }).eq("id", r.id); load(); }
+  async function remove(r: Rule) {
+    if (!window.confirm(`Hapus jadwal ${r.name}?`)) return;
+    const { error } = await supabase.from("recurring_rules").delete().eq("id", r.id);
+    if (error) window.alert("Jadwal ini sudah membuat transaksi, jadi tidak bisa dihapus. Pakai tombol Jeda saja.");
+    else load();
+  }
+  const cats = categories.filter((c) => c.kind === type);
+
+  return (
+    <div className="mt-4">
+      <button onClick={open} className="w-full rounded-xl bg-navy py-2.5 text-white">Tambah jadwal</button>
+      <p className="mt-2 text-xs text-charcoal/60">Transaksi dibuat otomatis saat aplikasi dibuka setelah tanggal jatuh tempo, dan tidak akan tercatat ganda.</p>
+      {rules.length === 0 && <p className="mt-4 text-charcoal/70">Belum ada transaksi berulang.</p>}
+      <ul className="mt-3 space-y-2">
+        {rules.map((r) => (
+          <li key={r.id} className="rounded-2xl bg-white px-4 py-3 shadow-sm">
+            <div className="flex justify-between"><span className="font-medium">{r.name}</span><span className={r.type === "income" ? "text-emerald" : ""}>{r.type === "income" ? "+" : "-"}{rupiah(r.amount)}</span></div>
+            <p className="text-sm text-charcoal/60">{FREQ[r.frequency]} · berikutnya {new Date(r.next_run_date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}{r.active ? "" : " · dijeda"}</p>
+            <div className="mt-2 flex gap-4 text-sm">
+              <button onClick={() => toggle(r)} className="text-navy underline">{r.active ? "Jeda" : "Aktifkan"}</button>
+              <button onClick={() => remove(r)} className="text-red-700 underline">Hapus</button>
+            </div>
+          </li>
+        ))}
+      </ul>
+      {form && (
+        <Sheet title="Tambah jadwal" onClose={() => setForm(false)}>
+          <div className="grid grid-cols-2 gap-2 rounded-xl bg-charcoal/10 p-1">
+            {([["expense", "Pengeluaran"], ["income", "Pemasukan"]] as const).map(([k, l]) => (
+              <button key={k} onClick={() => { setType(k); setCatId(""); }} className={`rounded-lg py-2 text-sm font-medium ${type === k ? "bg-navy text-white" : ""}`}>{l}</button>
+            ))}
+          </div>
+          <input className={field} placeholder="Nama (contoh: Listrik, Gaji)" value={name} onChange={(e) => setName(e.target.value)} />
+          <input className={`${field} text-xl font-semibold`} inputMode="numeric" placeholder="Nominal (Rp)" value={money(amt)} onChange={(e) => setAmt(onlyDigits(e.target.value))} />
+          <select className={field} value={accId} onChange={(e) => setAccId(e.target.value)}>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+          <select className={field} value={catId} onChange={(e) => setCatId(e.target.value)}>
+            <option value="">Tanpa kategori</option>{cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <select className={field} value={freq} onChange={(e) => setFreq(e.target.value)}>{Object.entries(FREQ).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+          <div><label className="text-sm text-charcoal/70">Tanggal mulai</label><input className={field} type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
+          {err && <p className="text-sm text-red-700">{err}</p>}
+          <Save busy={busy} onClick={save} />
+        </Sheet>
+      )}
+    </div>
+  );
+}
+
 export default function Plans({ accounts, categories, onChanged }: { accounts: Account[]; categories: Category[]; onChanged: () => void }) {
-  const [view, setView] = useState<"anggaran" | "tabungan" | "utang">("anggaran");
+  const [view, setView] = useState<"anggaran" | "tabungan" | "utang" | "berulang">("anggaran");
   return (
     <section className="px-5 pt-5">
-      <div className="grid grid-cols-3 gap-2 rounded-xl bg-charcoal/10 p-1">
-        {(["anggaran", "tabungan", "utang"] as const).map((v) => (
-          <button key={v} onClick={() => setView(v)} className={`rounded-lg py-2 font-medium capitalize ${view === v ? "bg-navy text-white" : ""}`}>{v}</button>
+      <div className="grid grid-cols-4 gap-1 rounded-xl bg-charcoal/10 p-1">
+        {(["anggaran", "tabungan", "utang", "berulang"] as const).map((v) => (
+          <button key={v} onClick={() => setView(v)} className={`rounded-lg py-2 text-sm font-medium capitalize ${view === v ? "bg-navy text-white" : ""}`}>{v}</button>
         ))}
       </div>
-      {view === "anggaran" ? <Budgets categories={categories} /> : view === "tabungan" ? <Savings accounts={accounts} onChanged={onChanged} /> : <Debts accounts={accounts} onChanged={onChanged} />}
+      {view === "anggaran" ? <Budgets categories={categories} /> : view === "tabungan" ? <Savings accounts={accounts} onChanged={onChanged} /> : view === "utang" ? <Debts accounts={accounts} onChanged={onChanged} /> : <Recurring accounts={accounts} categories={categories} />}
     </section>
   );
 }
