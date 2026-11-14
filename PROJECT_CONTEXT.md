@@ -8,9 +8,10 @@ Aturan kerja: bahasa Indonesia sederhana, satu langkah per pesan, tunggu konfirm
 - Tahap 1: kerangka, login/daftar, Beranda. Deploy Vercel berhasil, akun pertama sudah dibuat, konfirmasi email dimatikan.
 - Tahap 2: menu bawah (Beranda/Transaksi), form tambah/ubah/hapus pemasukan & pengeluaran, riwayat, ringkasan bulan ini.
 - Kunci publik ada di src/lib/config.ts (URL + publishable key). Jangan pakai service_role.
+- Tahap 3: halaman Rekening (tambah/ubah/hapus, hapus diblokir bila sudah ada transaksi), transfer antar-rekening (tidak dihitung pemasukan/pengeluaran), transfer tampil di riwayat.
 
 ## Belum
-Halaman rekening (tambah/ubah), transfer, anggaran, tabungan, utang-piutang,
+ transfer, anggaran, tabungan, utang-piutang,
 kalender, analisis, laporan PDF/Excel, transaksi berulang, pengaturan/tema gelap, PWA, APK.
 
 ## Catatan

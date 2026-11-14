@@ -5,6 +5,7 @@ export type Tx = {
   type: string;
   amount: number;
   account_id: string;
+  to_account_id: string | null;
   category_id: string | null;
   occurred_at: string;
   source: string | null;

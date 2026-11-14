@@ -6,13 +6,16 @@ import type { Account, Category, Tx } from "./lib/types";
 import Login from "./pages/Login";
 import Transactions from "./pages/Transactions";
 import TransactionForm from "./components/TransactionForm";
+import TransferForm from "./components/TransferForm";
+import Accounts from "./pages/Accounts";
 
 function Main({ session }: { session: Session }) {
-  const [tab, setTab] = useState<"beranda" | "transaksi">("beranda");
+  const [tab, setTab] = useState<"beranda" | "transaksi" | "rekening">("beranda");
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [txs, setTxs] = useState<Tx[]>([]);
   const [monthTx, setMonthTx] = useState<{ type: string; amount: number }[]>([]);
+  const [transfer, setTransfer] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState<{ open: boolean; editing: Tx | null }>({ open: false, editing: null });
@@ -24,7 +27,7 @@ function Main({ session }: { session: Session }) {
     const [a, c, t, m] = await Promise.all([
       supabase.from("account_balances").select("id,name,type,balance").order("name"),
       supabase.from("categories").select("id,name,kind").order("name"),
-      supabase.from("transactions").select("id,type,amount,account_id,category_id,occurred_at,source,note").order("occurred_at", { ascending: false }).limit(200),
+      supabase.from("transactions").select("id,type,amount,account_id,to_account_id,category_id,occurred_at,source,note").order("occurred_at", { ascending: false }).limit(200),
       supabase.from("transactions").select("type,amount").gte("occurred_at", start.toISOString()),
     ]);
     if (a.error || c.error || t.error || m.error) setError("Data belum bisa dimuat. Coba muat ulang halaman.");
@@ -92,6 +95,8 @@ function Main({ session }: { session: Session }) {
           />
           <p className="px-5 pt-6 text-xs text-charcoal/60">Masuk sebagai {session.user.email}</p>
         </>
+      ) : tab === "rekening" ? (
+        <Accounts accounts={accounts} onChanged={load} onTransfer={() => setTransfer(true)} />
       ) : (
         <>
           <h2 className="px-5 pt-5 text-lg font-semibold text-navy">Riwayat transaksi</h2>
@@ -114,8 +119,8 @@ function Main({ session }: { session: Session }) {
       </button>
 
       <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-charcoal/10 bg-white pb-[env(safe-area-inset-bottom)]">
-        <div className="mx-auto grid max-w-xl grid-cols-2">
-          {([["beranda", "Beranda"], ["transaksi", "Transaksi"]] as const).map(([k, label]) => (
+        <div className="mx-auto grid max-w-xl grid-cols-3">
+          {([["beranda", "Beranda"], ["transaksi", "Transaksi"], ["rekening", "Rekening"]] as const).map(([k, label]) => (
             <button
               key={k}
               onClick={() => setTab(k)}
@@ -126,6 +131,10 @@ function Main({ session }: { session: Session }) {
           ))}
         </div>
       </nav>
+
+      {transfer && (
+        <TransferForm accounts={accounts} onClose={() => setTransfer(false)} onSaved={() => { setTransfer(false); load(); }} />
+      )}
 
       {form.open && (
         <TransactionForm
