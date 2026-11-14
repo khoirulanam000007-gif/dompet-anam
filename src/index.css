@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy: #0b1f3a;
+  --color-emerald: #0f9d6b;
+  --color-paper: #f7f6f2;
+  --color-charcoal: #2b2f36;
+  --color-gold: #c9a961;
+  --font-sans: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--color-paper);
+  color: var(--color-charcoal);
+  font-family: var(--font-sans);
+}

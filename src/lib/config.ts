@@ -1,0 +1,3 @@
+// Kunci publik (aman dipakai di aplikasi). Jangan pernah menaruh kunci "secret" di sini.
+export const SUPABASE_URL = "https://elldisiecpnywxtgnhrd.supabase.co";
+export const SUPABASE_KEY = "sb_publishable_bwU7pE0-piFYoIwDr74wcQ_qV12Tp-a";
