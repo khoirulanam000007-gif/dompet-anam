@@ -3,6 +3,38 @@ import { supabase } from "../lib/supabase";
 import type { Category } from "../lib/types";
 
 const field = "w-full rounded-xl border border-charcoal/15 bg-white px-4 py-3 outline-none focus:border-emerald focus:ring-2 focus:ring-emerald/30";
+const sha = async (s: string) =>
+  Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)))).map((b) => b.toString(16).padStart(2, "0")).join("");
+
+export function LockScreen({ onUnlock }: { onUnlock: () => void }) {
+  const [pin, setPin] = useState("");
+  const [err, setErr] = useState("");
+  async function change(v: string) {
+    const d = v.replace(/\D/g, "").slice(0, 4);
+    setPin(d);
+    if (d.length < 4) return;
+    if ((await sha(d)) === localStorage.getItem("pin")) onUnlock();
+    else { setErr("PIN salah."); setPin(""); }
+  }
+  async function forgot() {
+    if (!window.confirm("Keluar dari akun dan hapus PIN? Anda perlu masuk lagi dengan email dan kata sandi.")) return;
+    localStorage.removeItem("pin");
+    await supabase.auth.signOut();
+    onUnlock();
+  }
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-navy p-5">
+      <div className="w-full max-w-sm rounded-3xl bg-paper p-7 text-center">
+        <h1 className="text-xl font-semibold text-navy">DOMPET ANAM</h1>
+        <p className="mt-1 text-sm text-charcoal/70">Masukkan PIN 4 angka</p>
+        <input className={`${field} mt-4 text-center text-2xl tracking-[0.5em]`} type="password" inputMode="numeric" autoFocus value={pin} onChange={(e) => change(e.target.value)} />
+        {err && <p className="mt-2 text-sm text-red-700">{err}</p>}
+        <button onClick={forgot} className="mt-4 text-sm text-navy underline">Lupa PIN?</button>
+      </div>
+    </main>
+  );
+}
+
 const btn = "rounded-xl bg-emerald px-4 py-2.5 font-medium text-white disabled:opacity-60";
 
 export function NewPassword({ onDone }: { onDone: () => void }) {
@@ -33,6 +65,31 @@ export default function Settings({ categories, onChanged }: { categories: Catego
   const [cName, setCName] = useState("");
   const [cKind, setCKind] = useState<"expense" | "income">("expense");
   const [msg, setMsg] = useState("");
+  const [pin, setPin] = useState("");
+  const [hasPin, setHasPin] = useState(!!localStorage.getItem("pin"));
+
+  async function savePin() {
+    if (!/^\d{4}$/.test(pin)) return setMsg("PIN harus 4 angka.");
+    localStorage.setItem("pin", await sha(pin));
+    setHasPin(true); setPin(""); setMsg("Kunci PIN aktif. PIN diminta setiap aplikasi dibuka.");
+  }
+  function removePin() { localStorage.removeItem("pin"); setHasPin(false); setMsg("Kunci PIN dimatikan."); }
+
+  async function backup() {
+    const names = ["profiles", "accounts", "categories", "savings_goals", "debts", "recurring_rules", "budgets", "transactions"];
+    const out: Record<string, unknown> = { app: "DOMPET ANAM", exported_at: new Date().toISOString() };
+    for (const t of names) {
+      const { data, error } = await supabase.from(t).select("*");
+      if (error) return setMsg("Gagal membuat cadangan. Coba lagi.");
+      out[t] = data;
+    }
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 2)], { type: "application/json" }));
+    a.download = `cadangan-dompet-anam-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    setMsg("Cadangan diunduh. Simpan file ini di tempat aman.");
+  }
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -112,6 +169,25 @@ export default function Settings({ categories, onChanged }: { categories: Catego
             </div>
           </div>
         ))}
+      </div>
+
+      <div className={card}>
+        <p className="font-medium">Kunci PIN</p>
+        <p className="text-sm text-charcoal/60">Kunci di perangkat ini saja. Bukan pengganti kata sandi akun.</p>
+        {hasPin ? (
+          <button onClick={removePin} className="mt-2 rounded-xl border border-red-700 px-4 py-2.5 text-red-700">Matikan PIN</button>
+        ) : (
+          <>
+            <input className={`${field} mt-2`} type="password" inputMode="numeric" placeholder="PIN 4 angka" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))} />
+            <button onClick={savePin} className={`${btn} mt-2`}>Aktifkan PIN</button>
+          </>
+        )}
+      </div>
+
+      <div className={card}>
+        <p className="font-medium">Cadangan data</p>
+        <p className="text-sm text-charcoal/60">Unduh salinan seluruh data Anda dalam satu file.</p>
+        <button onClick={backup} className={`${btn} mt-2`}>Unduh cadangan</button>
       </div>
 
       {msg && <p className="mt-3 text-sm text-emerald">{msg}</p>}

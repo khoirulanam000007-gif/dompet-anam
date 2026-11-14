@@ -39,6 +39,9 @@ export default function Home({ accounts, categories, txs, total, onAdd, onTransf
   const [bud, setBud] = useState({ limit: 0, used: 0, risk: 0, count: 0 });
   const [goal, setGoal] = useState({ saved: 0, target: 0, count: 0 });
   const [debt, setDebt] = useState({ owe: 0, owed: 0 });
+  const [dues, setDues] = useState<{ n: string; d: string; k: string; a: number }[]>([]);
+  const [mInc, setMInc] = useState(0);
+  const [mExp, setMExp] = useState(0);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -63,9 +66,9 @@ export default function Home({ accounts, categories, txs, total, onAdd, onTransf
     Promise.all([
       supabase.from("transactions").select("type,amount,occurred_at").in("type", ["income", "expense"]).gte("occurred_at", w0.toISOString()),
       supabase.from("budgets").select("category_id,limit_amount").eq("month", mKey),
-      supabase.from("transactions").select("category_id,amount").eq("type", "expense").gte("occurred_at", m0.toISOString()),
+      supabase.from("transactions").select("type,category_id,amount").in("type", ["income", "expense"]).gte("occurred_at", m0.toISOString()),
       supabase.from("goal_progress").select("saved_amount,target_amount"),
-      supabase.from("debt_status").select("kind,remaining_amount"),
+      supabase.from("debt_status").select("kind,remaining_amount,due_date,person_name,is_paid"),
     ]).then(([w, b, sp, g, d]) => {
       const days = Array.from({ length: 7 }, (_, i) => new Date(w0.getFullYear(), w0.getMonth(), w0.getDate() + i));
       setWeek(days.map((dt) => {
@@ -75,13 +78,18 @@ export default function Home({ accounts, categories, txs, total, onAdd, onTransf
         return { d: DAYS[dt.getDay()], inc: sum("income"), exp: sum("expense") };
       }));
       const spent: Record<string, number> = {};
-      (sp.data ?? []).forEach((x) => { if (x.category_id) spent[x.category_id] = (spent[x.category_id] ?? 0) + Number(x.amount); });
+      (sp.data ?? []).forEach((x) => { if (x.type === "expense" && x.category_id) spent[x.category_id] = (spent[x.category_id] ?? 0) + Number(x.amount); });
       let limit = 0, used = 0, risk = 0;
       (b.data ?? []).forEach((x) => { const l = Number(x.limit_amount), u = spent[x.category_id] ?? 0; limit += l; used += u; if (u / l >= 0.8) risk++; });
       setBud({ limit, used, risk, count: (b.data ?? []).length });
+      const msum = (t: string) => (sp.data ?? []).filter((x) => x.type === t).reduce((a, x) => a + Number(x.amount), 0);
+      setMInc(msum("income"));
+      setMExp(msum("expense"));
       setGoal({ saved: (g.data ?? []).reduce((a, x) => a + Number(x.saved_amount), 0), target: (g.data ?? []).reduce((a, x) => a + Number(x.target_amount), 0), count: (g.data ?? []).length });
       const rem = (k: string) => (d.data ?? []).filter((x) => x.kind === k).reduce((a, x) => a + Number(x.remaining_amount), 0);
       setDebt({ owe: rem("borrowed"), owed: rem("lent") });
+      const soon = ymd(new Date(n.getFullYear(), n.getMonth(), n.getDate() + 3));
+      setDues((d.data ?? []).filter((x) => !x.is_paid && x.due_date && x.due_date <= soon).map((x) => ({ n: x.person_name, d: x.due_date, k: x.kind, a: Number(x.remaining_amount) })));
     });
   }, [txs]);
 
@@ -98,6 +106,18 @@ export default function Home({ accounts, categories, txs, total, onAdd, onTransf
     : `Cukup baik: ${Math.round((left / tot.inc) * 100)}% pemasukan tersisa. Jaga pengeluaran.`;
   const card = "rise rounded-2xl bg-white p-4 shadow-sm";
   const pct = (a: number, b: number) => (b > 0 ? Math.min(100, Math.round((a / b) * 100)) : 0);
+
+  const hasData = mInc > 0 || mExp > 0;
+  const sSave = mInc > 0 ? 50 * Math.max(0, Math.min(1, (mInc - mExp) / mInc / 0.3)) : 0;
+  const sBud = bud.count ? (bud.used > bud.limit ? 0 : 30 * (1 - 0.5 * (bud.risk / bud.count))) : 15;
+  const sDebt = debt.owe === 0 ? 20 : total > 0 ? 20 * Math.max(0, 1 - debt.owe / total) : 0;
+  const score = Math.round(sSave + sBud + sDebt);
+  const scoreLabel = score >= 80 ? "Sangat sehat" : score >= 60 ? "Sehat" : score >= 40 ? "Perlu perhatian" : "Waspada";
+  const days = new Set(txs.map((t) => ymd(new Date(t.occurred_at))));
+  let streak = 0;
+  const cur = new Date();
+  if (!days.has(ymd(cur))) cur.setDate(cur.getDate() - 1);
+  while (days.has(ymd(cur))) { streak++; cur.setDate(cur.getDate() - 1); }
 
   return (
     <div>
@@ -139,9 +159,41 @@ export default function Home({ accounts, categories, txs, total, onAdd, onTransf
       </section>
 
       <section className="px-5 pt-4">
+        {dues.length > 0 && (
+          <div className="rise mb-3 rounded-2xl border border-red-700/40 bg-white px-4 py-3 text-sm shadow-sm">
+            <p className="font-semibold text-red-700">Pengingat jatuh tempo</p>
+            {dues.map((x, i) => (
+              <p key={i}>{x.k === "borrowed" ? "Bayar ke" : "Tagih dari"} {x.n}: {money(x.a)} · {new Date(x.d).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}</p>
+            ))}
+          </div>
+        )}
         <div className="rise rounded-2xl border border-gold/50 bg-white px-4 py-3 text-sm shadow-sm" style={{ animationDelay: "120ms" }}>
           <span className="font-semibold text-navy">Kondisi keuangan · </span>{insight}
         </div>
+
+        {txs.length === 0 && (
+          <div className="rise mt-4 rounded-2xl bg-white p-4 text-sm shadow-sm">
+            <p className="font-semibold text-navy">Mulai dalam 3 langkah</p>
+            <p className="mt-1">1. Tekan Pemasukan untuk mencatat uang yang sudah Anda punya.</p>
+            <p>2. Catat pengeluaran harian dengan tombol Pengeluaran.</p>
+            <p>3. Buka menu Rencana untuk membuat anggaran dan target tabungan.</p>
+          </div>
+        )}
+
+        {hasData && (
+          <div className="rise mt-4 flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm" style={{ animationDelay: "180ms" }}>
+            <svg viewBox="0 0 72 72" className="h-20 w-20 shrink-0 -rotate-90">
+              <circle cx="36" cy="36" r="28" fill="none" stroke="currentColor" strokeOpacity="0.12" strokeWidth="7" />
+              <circle cx="36" cy="36" r="28" fill="none" stroke="#0f9d6b" strokeWidth="7" strokeLinecap="round" strokeDasharray="175.9" strokeDashoffset={175.9 * (1 - score / 100)} />
+            </svg>
+            <div>
+              <p className="text-xs text-charcoal/60">Skor keuangan bulan ini</p>
+              <p className="text-3xl font-semibold text-navy">{score}<span className="text-base text-charcoal/60">/100</span></p>
+              <p className="text-sm">{scoreLabel}</p>
+              {streak > 0 && <p className="mt-1 text-xs text-charcoal/60">🔥 Streak mencatat {streak} hari</p>}
+            </div>
+          </div>
+        )}
 
         <div className="mt-4 grid grid-cols-3 gap-2">
           {([["Pemasukan", "+", "bg-emerald text-white", () => onAdd("income")], ["Pengeluaran", "−", "bg-navy text-white", () => onAdd("expense")], ["Transfer", "⇄", "bg-gold text-navy", onTransfer]] as const).map(([l, ic, c, fn], i) => (

@@ -4,7 +4,7 @@ import { supabase } from "./lib/supabase";
 import { rupiah } from "./lib/format";
 import type { Account, Category, Tx } from "./lib/types";
 import Login from "./pages/Login";
-import { NewPassword } from "./pages/Settings";
+import { NewPassword, LockScreen } from "./pages/Settings";
 import { processRecurring } from "./lib/recurring";
 import Transactions from "./pages/Transactions";
 import TransactionForm from "./components/TransactionForm";
@@ -92,6 +92,7 @@ function Main({ session }: { session: Session }) {
         <>
           <h2 className="px-5 pt-5 text-lg font-semibold text-navy">Riwayat transaksi</h2>
           <Transactions
+            searchable
             txs={txs}
             accounts={accounts}
             categories={categories}
@@ -146,6 +147,7 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
   const [recovery, setRecovery] = useState(false);
+  const [locked, setLocked] = useState(!!localStorage.getItem("pin"));
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -161,5 +163,6 @@ export default function App() {
 
   if (!ready) return <div className="p-6 text-charcoal/60">Memuat...</div>;
   if (recovery && session) return <NewPassword onDone={() => setRecovery(false)} />;
+  if (session && locked) return <LockScreen onUnlock={() => setLocked(false)} />;
   return session ? <Main session={session} /> : <Login />;
 }
