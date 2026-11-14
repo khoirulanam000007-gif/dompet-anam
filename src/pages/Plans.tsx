@@ -259,16 +259,183 @@ function Savings({ accounts, onChanged }: { accounts: Account[]; onChanged: () =
   );
 }
 
+type Debt = {
+  id: string; kind: "borrowed" | "lent"; person_name: string; amount: number;
+  due_date: string | null; note: string | null; paid_amount: number; remaining_amount: number; is_paid: boolean;
+};
+type DTx = { id: string; type: string; amount: number; debt_id: string; occurred_at: string };
+const DLABEL: Record<string, string> = {
+  debt_borrow: "Pinjaman diterima", loan_give: "Pinjaman diberikan",
+  debt_repay: "Pembayaran", loan_receive: "Penerimaan pembayaran",
+};
+
+function Debts({ accounts, onChanged }: { accounts: Account[]; onChanged: () => void }) {
+  const [debts, setDebts] = useState<Debt[]>([]);
+  const [dtx, setDtx] = useState<DTx[]>([]);
+  const [hist, setHist] = useState<string | null>(null);
+  const [form, setForm] = useState(false);
+  const [kind, setKind] = useState<"borrowed" | "lent">("borrowed");
+  const [person, setPerson] = useState("");
+  const [amt, setAmt] = useState("");
+  const [accId, setAccId] = useState("");
+  const [due, setDue] = useState("");
+  const [note, setNote] = useState("");
+  const [pay, setPay] = useState<Debt | null>(null);
+  const [payAmt, setPayAmt] = useState("");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    const [d, t] = await Promise.all([
+      supabase.from("debt_status").select("id,kind,person_name,amount,due_date,note,paid_amount,remaining_amount,is_paid").order("is_paid").order("due_date", { nullsFirst: false }),
+      supabase.from("transactions").select("id,type,amount,debt_id,occurred_at").not("debt_id", "is", null).order("occurred_at", { ascending: false }).limit(300),
+    ]);
+    setDebts((d.data ?? []).map((x) => ({ ...x, amount: Number(x.amount), paid_amount: Number(x.paid_amount), remaining_amount: Number(x.remaining_amount) })) as Debt[]);
+    setDtx((t.data ?? []).map((x) => ({ ...x, amount: Number(x.amount) })) as DTx[]);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const owe = debts.filter((d) => d.kind === "borrowed").reduce((s, d) => s + d.remaining_amount, 0);
+  const owed = debts.filter((d) => d.kind === "lent").reduce((s, d) => s + d.remaining_amount, 0);
+
+  function openForm() {
+    setErr(""); setKind("borrowed"); setPerson(""); setAmt(""); setDue(""); setNote(""); setAccId(accounts[0]?.id ?? ""); setForm(true);
+  }
+
+  async function saveDebt() {
+    const n = Number(amt);
+    const acc = accounts.find((a) => a.id === accId);
+    if (!person.trim() || n <= 0 || !acc) return setErr("Isi nama, nominal, dan rekening.");
+    if (kind === "lent" && n > acc.balance) return setErr(`Saldo ${acc.name} hanya ${rupiah(acc.balance)}.`);
+    setBusy(true);
+    const { data, error } = await supabase.from("debts")
+      .insert({ kind, person_name: person.trim(), amount: n, due_date: due || null, note: note.trim() || null })
+      .select("id").single();
+    if (error || !data) { setBusy(false); return setErr("Gagal menyimpan. Coba lagi."); }
+    const { error: e2 } = await supabase.from("transactions")
+      .insert({ type: kind === "borrowed" ? "debt_borrow" : "loan_give", amount: n, account_id: accId, debt_id: data.id });
+    if (e2) {
+      await supabase.from("debts").delete().eq("id", data.id);
+      setBusy(false);
+      return setErr("Gagal menyimpan. Coba lagi.");
+    }
+    setBusy(false); setForm(false); load(); onChanged();
+  }
+
+  function openPay(d: Debt) { setErr(""); setPayAmt(""); setAccId(accounts[0]?.id ?? ""); setPay(d); }
+
+  async function savePay() {
+    const n = Number(payAmt);
+    const acc = accounts.find((a) => a.id === accId);
+    if (!pay || n <= 0 || !acc) return setErr("Isi nominal dan pilih rekening.");
+    if (n > pay.remaining_amount) return setErr(`Sisa hanya ${rupiah(pay.remaining_amount)}.`);
+    if (pay.kind === "borrowed" && n > acc.balance) return setErr(`Saldo ${acc.name} hanya ${rupiah(acc.balance)}.`);
+    setBusy(true);
+    const { error } = await supabase.from("transactions")
+      .insert({ type: pay.kind === "borrowed" ? "debt_repay" : "loan_receive", amount: n, account_id: accId, debt_id: pay.id });
+    setBusy(false);
+    if (error) return setErr("Gagal menyimpan. Coba lagi.");
+    setPay(null); load(); onChanged();
+  }
+
+  async function remove(d: Debt) {
+    if (!window.confirm(`Hapus catatan ${d.person_name} beserta semua pembayarannya? Saldo rekening akan dihitung ulang.`)) return;
+    const a = await supabase.from("transactions").delete().eq("debt_id", d.id);
+    const b = a.error ? a : await supabase.from("debts").delete().eq("id", d.id);
+    if (b.error) window.alert("Gagal menghapus. Coba lagi.");
+    load(); onChanged();
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  return (
+    <div className="mt-4">
+      <div className="grid grid-cols-2 gap-3 rounded-2xl bg-navy p-4 text-white">
+        <div><p className="text-sm text-white/70">Utang saya</p><p className="font-semibold">{rupiah(owe)}</p></div>
+        <div><p className="text-sm text-white/70">Piutang saya</p><p className="font-semibold">{rupiah(owed)}</p></div>
+      </div>
+      <button onClick={openForm} className="mt-3 w-full rounded-xl bg-navy py-2.5 text-white">Tambah catatan</button>
+      {debts.length === 0 && <p className="mt-4 text-charcoal/70">Belum ada catatan utang atau piutang.</p>}
+
+      <ul className="mt-3 space-y-2">
+        {debts.map((d) => {
+          const late = !d.is_paid && d.due_date && d.due_date < today;
+          const items = dtx.filter((x) => x.debt_id === d.id);
+          return (
+            <li key={d.id} className="rounded-2xl bg-white px-4 py-3 shadow-sm">
+              <div className="flex justify-between">
+                <span className="font-medium">{d.kind === "borrowed" ? `Utang ke ${d.person_name}` : `Piutang dari ${d.person_name}`}</span>
+                <span className={d.is_paid ? "text-emerald" : late ? "text-red-700" : ""}>{d.is_paid ? "Lunas" : late ? "Terlambat" : "Belum lunas"}</span>
+              </div>
+              <p className="mt-1 text-sm">Total {rupiah(d.amount)} · terbayar {rupiah(d.paid_amount)}</p>
+              <p className="text-sm font-medium">Sisa {rupiah(d.remaining_amount)}</p>
+              {d.due_date && <p className="text-sm text-charcoal/60">Jatuh tempo: {new Date(d.due_date).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</p>}
+              {d.note && <p className="text-sm">{d.note}</p>}
+              <div className="mt-2 flex flex-wrap gap-4 text-sm">
+                {!d.is_paid && <button onClick={() => openPay(d)} className="text-emerald underline">{d.kind === "borrowed" ? "Bayar" : "Terima pembayaran"}</button>}
+                <button onClick={() => setHist(hist === d.id ? null : d.id)} className="underline">Riwayat</button>
+                <button onClick={() => remove(d)} className="text-red-700 underline">Hapus</button>
+              </div>
+              {hist === d.id && (
+                <ul className="mt-2 space-y-1 border-t border-charcoal/10 pt-2 text-sm">
+                  {items.map((x) => (
+                    <li key={x.id} className="flex justify-between"><span>{DLABEL[x.type] ?? x.type} · {fmtDate(x.occurred_at)}</span><span>{rupiah(x.amount)}</span></li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+
+      {form && (
+        <Sheet title="Tambah catatan" onClose={() => setForm(false)}>
+          <div className="grid grid-cols-2 gap-2 rounded-xl bg-charcoal/10 p-1">
+            {([["borrowed", "Saya meminjam"], ["lent", "Saya meminjamkan"]] as const).map(([k, l]) => (
+              <button key={k} onClick={() => setKind(k)} className={`rounded-lg py-2 text-sm font-medium ${kind === k ? "bg-navy text-white" : ""}`}>{l}</button>
+            ))}
+          </div>
+          <input className={field} placeholder="Nama orang" value={person} onChange={(e) => setPerson(e.target.value)} />
+          <input className={`${field} text-xl font-semibold`} inputMode="numeric" placeholder="Nominal (Rp)" value={money(amt)} onChange={(e) => setAmt(onlyDigits(e.target.value))} />
+          <div>
+            <label className="text-sm text-charcoal/70">{kind === "borrowed" ? "Uang masuk ke rekening" : "Uang keluar dari rekening"}</label>
+            <select className={field} value={accId} onChange={(e) => setAccId(e.target.value)}>
+              {accounts.map((a) => <option key={a.id} value={a.id}>{a.name} ({rupiah(a.balance)})</option>)}
+            </select>
+          </div>
+          <div><label className="text-sm text-charcoal/70">Jatuh tempo (opsional)</label>
+            <input className={field} type="date" value={due} onChange={(e) => setDue(e.target.value)} /></div>
+          <input className={field} placeholder="Catatan (opsional)" value={note} onChange={(e) => setNote(e.target.value)} />
+          {err && <p className="text-sm text-red-700">{err}</p>}
+          <Save busy={busy} onClick={saveDebt} />
+        </Sheet>
+      )}
+
+      {pay && (
+        <Sheet title={pay.kind === "borrowed" ? `Bayar utang ke ${pay.person_name}` : `Terima dari ${pay.person_name}`} onClose={() => setPay(null)}>
+          <p className="text-sm">Sisa: {rupiah(pay.remaining_amount)}</p>
+          <select className={field} value={accId} onChange={(e) => setAccId(e.target.value)}>
+            {accounts.map((a) => <option key={a.id} value={a.id}>{a.name} ({rupiah(a.balance)})</option>)}
+          </select>
+          <input className={`${field} text-xl font-semibold`} inputMode="numeric" placeholder="Nominal (Rp)" value={money(payAmt)} onChange={(e) => setPayAmt(onlyDigits(e.target.value))} />
+          {err && <p className="text-sm text-red-700">{err}</p>}
+          <Save busy={busy} onClick={savePay} label={pay.kind === "borrowed" ? "Bayar" : "Terima"} />
+        </Sheet>
+      )}
+    </div>
+  );
+}
+
 export default function Plans({ accounts, categories, onChanged }: { accounts: Account[]; categories: Category[]; onChanged: () => void }) {
-  const [view, setView] = useState<"anggaran" | "tabungan">("anggaran");
+  const [view, setView] = useState<"anggaran" | "tabungan" | "utang">("anggaran");
   return (
     <section className="px-5 pt-5">
-      <div className="grid grid-cols-2 gap-2 rounded-xl bg-charcoal/10 p-1">
-        {(["anggaran", "tabungan"] as const).map((v) => (
+      <div className="grid grid-cols-3 gap-2 rounded-xl bg-charcoal/10 p-1">
+        {(["anggaran", "tabungan", "utang"] as const).map((v) => (
           <button key={v} onClick={() => setView(v)} className={`rounded-lg py-2 font-medium capitalize ${view === v ? "bg-navy text-white" : ""}`}>{v}</button>
         ))}
       </div>
-      {view === "anggaran" ? <Budgets categories={categories} /> : <Savings accounts={accounts} onChanged={onChanged} />}
+      {view === "anggaran" ? <Budgets categories={categories} /> : view === "tabungan" ? <Savings accounts={accounts} onChanged={onChanged} /> : <Debts accounts={accounts} onChanged={onChanged} />}
     </section>
   );
 }

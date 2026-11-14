@@ -10,10 +10,10 @@ Aturan kerja: bahasa Indonesia sederhana, satu langkah per pesan, tunggu konfirm
 - Kunci publik ada di src/lib/config.ts (URL + publishable key). Jangan pakai service_role.
 - Tahap 3: halaman Rekening (tambah/ubah/hapus, hapus diblokir bila sudah ada transaksi), transfer antar-rekening (tidak dihitung pemasukan/pengeluaran), transfer tampil di riwayat.
 - Tahap 4: menu Rencana = Anggaran bulanan (per kategori, riwayat per bulan, peringatan >=80%) + Tabungan (target, setor/tarik, riwayat).
+- Tahap 5: segmen Utang di menu Rencana: catat utang/piutang (otomatis memengaruhi saldo rekening, bukan pemasukan/pengeluaran), bayar/terima sebagian, sisa, lunas, jatuh tempo, riwayat, hapus beserta pembayarannya.
 
 ## Belum
- transfer, utang-piutang,
-kalender, analisis, laporan PDF/Excel, transaksi berulang, pengaturan/tema gelap, PWA, APK.
+Kalender, analisis, laporan PDF/Excel, transaksi berulang, pengaturan/tema gelap, PWA, APK.
 
 ## Catatan
 - Tipe transaksi: income, expense, transfer, saving_deposit, saving_withdraw, debt_borrow, debt_repay, loan_give, loan_receive.

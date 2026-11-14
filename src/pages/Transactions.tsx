@@ -29,8 +29,8 @@ export default function Transactions({ txs, accounts, categories, onEdit, onChan
     <ul className="space-y-2 px-5 pt-4">
       {txs.map((t) => {
         const isTransfer = t.type === "transfer";
-        const plus = t.type === "income" || t.type === "saving_withdraw";
-        const label = isTransfer ? "Transfer" : t.type === "saving_deposit" ? "Setoran tabungan" : t.type === "saving_withdraw" ? "Penarikan tabungan" : cat(t.category_id);
+        const plus = ["income", "saving_withdraw", "debt_borrow", "loan_receive"].includes(t.type);
+        const label = isTransfer ? "Transfer" : t.type === "saving_deposit" ? "Setoran tabungan" : t.type === "saving_withdraw" ? "Penarikan tabungan" : ({ debt_borrow: "Pinjaman diterima", loan_give: "Pinjaman diberikan", debt_repay: "Pembayaran utang", loan_receive: "Penerimaan piutang" } as Record<string, string>)[t.type] ?? cat(t.category_id);
         const editable = plus || t.type === "expense";
         return (
           <li key={t.id} className="rounded-2xl bg-white px-4 py-3 shadow-sm">
