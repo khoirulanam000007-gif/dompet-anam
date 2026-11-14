@@ -35,18 +35,6 @@ const Save = ({ busy, onClick, label = "Simpan" }: { busy: boolean; onClick: () 
   </button>
 );
 
-function Ring({ pct, color }: { pct: number; color: string }) {
-  return (
-    <div className="relative h-14 w-14 shrink-0">
-      <svg viewBox="0 0 44 44" className="h-14 w-14 -rotate-90">
-        <circle cx="22" cy="22" r="18" fill="none" stroke="currentColor" strokeOpacity="0.12" strokeWidth="5" />
-        <circle cx="22" cy="22" r="18" fill="none" stroke={color} strokeWidth="5" strokeLinecap="round" strokeDasharray="113.1" strokeDashoffset={113.1 * (1 - Math.min(100, pct) / 100)} />
-      </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold">{Math.min(pct, 999)}%</span>
-    </div>
-  );
-}
-
 function Bar({ pct, color }: { pct: number; color: string }) {
   return (
     <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-charcoal/10">
@@ -124,10 +112,8 @@ function Budgets({ categories }: { categories: Category[] }) {
           const over = pct >= 100, warn = pct >= 80;
           return (
             <li key={b.id} className="rounded-2xl bg-white px-4 py-3 shadow-sm">
-              <div className="flex items-center gap-3">
-                <Ring pct={pct} color={over ? "#dc2626" : warn ? "#c9a961" : "#0f9d6b"} />
-                <div className="min-w-0 flex-1"><p className="font-semibold">{catIcon(catName(b.category_id))} {catName(b.category_id)}</p><p className="text-xs text-charcoal/60">Batas {rupiah(b.limit_amount)}</p></div>
-              </div>
+              <div className="flex justify-between"><span className="font-medium">{catIcon(catName(b.category_id))} {catName(b.category_id)}</span><span>{pct}%</span></div>
+              <Bar pct={pct} color={over ? "bg-red-600" : warn ? "bg-gold" : "bg-emerald"} />
               <p className="mt-2 text-sm">Terpakai {rupiah(used)} dari {rupiah(b.limit_amount)}</p>
               <p className={`text-sm ${over ? "text-red-700" : "text-charcoal/70"}`}>
                 {over ? `Melebihi ${rupiah(used - b.limit_amount)}` : `Sisa ${rupiah(b.limit_amount - used)}`}
@@ -224,10 +210,8 @@ function Savings({ accounts, onChanged }: { accounts: Account[]; onChanged: () =
           const hist = gtx.filter((x) => x.goal_id === g.id);
           return (
             <li key={g.id} className="rounded-2xl bg-white px-4 py-3 shadow-sm">
-              <div className="flex items-center gap-3">
-                <Ring pct={pct} color="#c9a961" />
-                <div className="min-w-0 flex-1"><p className="font-semibold">🎯 {g.name}</p><p className="text-xs text-charcoal/60">Target {rupiah(g.target_amount)}</p></div>
-              </div>
+              <div className="flex justify-between"><span className="font-medium">{g.name}</span><span>{pct}%</span></div>
+              <Bar pct={pct} color="bg-emerald" />
               <p className="mt-2 text-sm">{rupiah(g.saved_amount)} dari {rupiah(g.target_amount)}</p>
               {g.target_date && <p className="text-sm text-charcoal/60">Target: {new Date(g.target_date).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</p>}
               <div className="mt-2 flex flex-wrap gap-4 text-sm">

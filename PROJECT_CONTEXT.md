@@ -17,10 +17,10 @@ Aturan kerja: bahasa Indonesia sederhana, satu langkah per pesan, tunggu konfirm
 - Tahap 9: Beranda baru (hero gradien, sapaan, sembunyikan saldo, filter periode hari/minggu/bulan/tahun/tanggal, grafik 7 hari, kondisi keuangan, aksi cepat, ringkasan anggaran/tabungan/utang/piutang), animasi halus, ikon menu.
 - Tahap 10: skor keuangan (0-100) + streak, pengingat jatuh tempo utang, panduan awal, pencarian/filter transaksi, kunci PIN (lokal), cadangan data JSON.
 - Tahap 11: desain premium merata: font Plus Jakarta Sans, header berwarna tiap halaman, ikon kategori, transaksi dikelompokkan per tanggal, kartu rekening bergradien, tren saldo 30 hari, login baru, tombol gradien, nav kaca.
-- Tahap 12: semua halaman setara Beranda: header hero dengan kartu melayang, kontrol segmented putih melayang, donut kategori, cincin progres anggaran/tabungan, nav melayang, ringkasan di header Transaksi.
+- Tahap 13: Pengaturan > Pulihkan dari cadangan (file JSON dari Unduh cadangan; kategori dipetakan berdasarkan nama+jenis, data tidak dihapus, aman diulang karena upsert per id; kode di src/lib/restore.ts) + kartu Beranda "Pengeluaran terbesar bulan ini" (3 kategori teratas).
 
 ## Belum
-Notifikasi push, pemulihan data dari cadangan, paket jual (schema.sql + panduan), APK (PWABuilder).
+Paket jual sudah dibuat di folder terpisah (Tahap 12): perlu uji coba di Supabase + Vercel baru. Notifikasi push, APK (PWABuilder).
 
 ## Rencana jual (pilihan: gratis, 1 salinan per pembeli)
 Pembeli pakai akun GitHub/Vercel/Supabase sendiri. Perlu paket: kode tanpa kunci penjual, schema.sql, panduan. Vercel Hobby hanya non-komersial; jangan jual akses di akun Vercel Hobby milik penjual.

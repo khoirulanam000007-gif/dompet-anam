@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { restoreBackup } from "../lib/restore";
 import type { Category } from "../lib/types";
 
 const field = "w-full rounded-xl border border-charcoal/15 bg-white px-4 py-3 outline-none focus:border-emerald focus:ring-2 focus:ring-emerald/30";
@@ -67,6 +68,7 @@ export default function Settings({ categories, onChanged }: { categories: Catego
   const [msg, setMsg] = useState("");
   const [pin, setPin] = useState("");
   const [hasPin, setHasPin] = useState(!!localStorage.getItem("pin"));
+  const [busy, setBusy] = useState(false);
 
   async function savePin() {
     if (!/^\d{4}$/.test(pin)) return setMsg("PIN harus 4 angka.");
@@ -89,6 +91,17 @@ export default function Settings({ categories, onChanged }: { categories: Catego
     a.click();
     URL.revokeObjectURL(a.href);
     setMsg("Cadangan diunduh. Simpan file ini di tempat aman.");
+  }
+
+  async function restore(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    if (!window.confirm("Pulihkan data dari file ini? Data yang sudah ada tidak dihapus. Data dari cadangan akan ditambahkan atau diperbarui.")) return;
+    setBusy(true); setMsg("Memulihkan data…");
+    try { setMsg(await restoreBackup(await f.text())); onChanged(); }
+    catch (err) { setMsg(err instanceof Error ? err.message : "Gagal memulihkan. Coba lagi."); }
+    setBusy(false);
   }
 
   useEffect(() => {
@@ -133,7 +146,7 @@ export default function Settings({ categories, onChanged }: { categories: Catego
     <section className="px-5 pb-6 pt-2">
       <div className={card}>
         <div className="flex items-center justify-between">
-          <span className="font-semibold">🌙 Tema gelap</span>
+          <span className="font-medium">Tema gelap</span>
           <button onClick={toggleTheme} className={`h-7 w-12 rounded-full p-0.5 ${dark ? "bg-emerald" : "bg-charcoal/30"}`} aria-label="Tema gelap">
             <span className={`block h-6 w-6 rounded-full bg-white transition-transform ${dark ? "translate-x-5" : ""}`} />
           </button>
@@ -142,7 +155,7 @@ export default function Settings({ categories, onChanged }: { categories: Catego
       </div>
 
       <div className={card}>
-        <p className="font-semibold">👤 Profil</p>
+        <p className="font-medium">Profil</p>
         <input className={`${field} mt-2`} placeholder="Nama" value={name} onChange={(e) => setName(e.target.value)} />
         <button onClick={saveName} className={`${btn} mt-2`}>Simpan nama</button>
         <input className={`${field} mt-4`} type="password" placeholder="Kata sandi baru" value={pw} onChange={(e) => setPw(e.target.value)} />
@@ -150,7 +163,7 @@ export default function Settings({ categories, onChanged }: { categories: Catego
       </div>
 
       <div className={card}>
-        <p className="font-semibold">🏷️ Kategori</p>
+        <p className="font-medium">Kategori</p>
         <div className="mt-2 flex gap-2">
           <input className={field} placeholder="Nama kategori baru" value={cName} onChange={(e) => setCName(e.target.value)} />
           <select className="rounded-xl border border-charcoal/15 bg-white px-2" value={cKind} onChange={(e) => setCKind(e.target.value as "income" | "expense")}>
@@ -172,7 +185,7 @@ export default function Settings({ categories, onChanged }: { categories: Catego
       </div>
 
       <div className={card}>
-        <p className="font-semibold">🔒 Kunci PIN</p>
+        <p className="font-medium">Kunci PIN</p>
         <p className="text-sm text-charcoal/60">Kunci di perangkat ini saja. Bukan pengganti kata sandi akun.</p>
         {hasPin ? (
           <button onClick={removePin} className="mt-2 rounded-xl border border-red-700 px-4 py-2.5 text-red-700">Matikan PIN</button>
@@ -185,9 +198,14 @@ export default function Settings({ categories, onChanged }: { categories: Catego
       </div>
 
       <div className={card}>
-        <p className="font-semibold">💾 Cadangan data</p>
+        <p className="font-medium">Cadangan data</p>
         <p className="text-sm text-charcoal/60">Unduh salinan seluruh data Anda dalam satu file.</p>
         <button onClick={backup} className={`${btn} mt-2`}>Unduh cadangan</button>
+        <p className="mt-4 text-sm text-charcoal/60">Pindah HP atau akun? Pulihkan data dari file cadangan. Aman diulang, tidak membuat data ganda.</p>
+        <label className={`${btn} mt-2 inline-block cursor-pointer ${busy ? "pointer-events-none opacity-60" : ""}`}>
+          Pulihkan dari cadangan
+          <input type="file" accept="application/json,.json" className="hidden" onChange={restore} disabled={busy} />
+        </label>
       </div>
 
       {msg && <p className="mt-3 text-sm text-emerald">{msg}</p>}

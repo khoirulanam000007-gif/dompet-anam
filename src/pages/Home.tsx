@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { rupiah } from "../lib/format";
+import { catIcon } from "../lib/icons";
 import type { Account, Category, Tx } from "../lib/types";
 import Transactions from "./Transactions";
 
@@ -42,6 +43,7 @@ export default function Home({ accounts, categories, txs, total, onAdd, onTransf
   const [dues, setDues] = useState<{ n: string; d: string; k: string; a: number }[]>([]);
   const [mInc, setMInc] = useState(0);
   const [mExp, setMExp] = useState(0);
+  const [top, setTop] = useState<{ id: string; v: number }[]>([]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -79,6 +81,7 @@ export default function Home({ accounts, categories, txs, total, onAdd, onTransf
       }));
       const spent: Record<string, number> = {};
       (sp.data ?? []).forEach((x) => { if (x.type === "expense" && x.category_id) spent[x.category_id] = (spent[x.category_id] ?? 0) + Number(x.amount); });
+      setTop(Object.entries(spent).map(([id, v]) => ({ id, v })).sort((a, b) => b.v - a.v).slice(0, 3));
       let limit = 0, used = 0, risk = 0;
       (b.data ?? []).forEach((x) => { const l = Number(x.limit_amount), u = spent[x.category_id] ?? 0; limit += l; used += u; if (u / l >= 0.8) risk++; });
       setBud({ limit, used, risk, count: (b.data ?? []).length });
@@ -170,6 +173,21 @@ export default function Home({ accounts, categories, txs, total, onAdd, onTransf
         <div className="rise rounded-2xl border border-gold/50 bg-white px-4 py-3 text-sm shadow-sm" style={{ animationDelay: "120ms" }}>
           <span className="font-semibold text-navy">Kondisi keuangan · </span>{insight}
         </div>
+
+        {top.length > 0 && (
+          <div className={card}>
+            <p className="font-medium text-navy">Pengeluaran terbesar bulan ini</p>
+            {top.map((t) => {
+              const nm = categories.find((c) => c.id === t.id)?.name ?? "Lainnya";
+              return (
+                <div key={t.id} className="mt-3">
+                  <div className="flex justify-between text-sm"><span>{catIcon(nm)} {nm}</span><span className="font-medium">{money(t.v)}</span></div>
+                  <div className="mt-1 h-2 rounded-full bg-charcoal/10"><div className="h-2 rounded-full bg-emerald" style={{ width: `${pct(t.v, mExp)}%` }} /></div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {txs.length === 0 && (
           <div className="rise mt-4 rounded-2xl bg-white p-4 text-sm shadow-sm">

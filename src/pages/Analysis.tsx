@@ -18,24 +18,6 @@ function range(p: P, off: number): [Date, Date] {
   return [s, new Date(s.getFullYear(), s.getMonth(), s.getDate() + 7)];
 }
 
-const PAL = ["#0f9d6b", "#c9a961", "#2f6fb5", "#8b5cf6", "#ef6f6c", "#64748b"];
-
-function Donut({ data, total }: { data: number[]; total: number }) {
-  const r = 34, c = 2 * Math.PI * r;
-  let acc = 0;
-  return (
-    <svg viewBox="0 0 100 100" className="h-28 w-28 shrink-0 -rotate-90">
-      <circle cx="50" cy="50" r={r} fill="none" stroke="currentColor" strokeOpacity="0.1" strokeWidth="14" />
-      {data.map((v, i) => {
-        const len = (v / total) * c;
-        const el = <circle key={i} cx="50" cy="50" r={r} fill="none" stroke={PAL[i % PAL.length]} strokeWidth="14" strokeDasharray={`${Math.max(0, len - 1)} ${c}`} strokeDashoffset={-acc} />;
-        acc += len;
-        return el;
-      })}
-    </svg>
-  );
-}
-
 function BalanceTrend({ total }: { total: number }) {
   const [pts, setPts] = useState<number[]>([]);
   useEffect(() => {
@@ -164,31 +146,15 @@ export default function Analysis({ categories, total }: { categories: Category[]
       </div>
 
       <h2 className="mt-6 text-lg font-semibold text-navy">Pengeluaran per kategori</h2>
-      <div className="mt-2 rounded-2xl bg-white p-4 shadow-sm">
-        {cats.length === 0 ? <p className="text-charcoal/60">Belum ada pengeluaran.</p> : (
-          <>
-            <div className="flex items-center gap-4">
-              <Donut data={cats.map(([, v]) => v)} total={exp} />
-              <div className="min-w-0 flex-1">
-                <p className="text-xs text-charcoal/60">Total pengeluaran</p>
-                <p className="text-lg font-bold">{rupiah(exp)}</p>
-                <p className="text-xs text-charcoal/60">{cats.length} kategori</p>
-              </div>
-            </div>
-            <ul className="mt-4 space-y-3">
-              {cats.map(([id, v], i) => (
-                <li key={id}>
-                  <div className="flex justify-between text-sm">
-                    <span><i className="mr-2 inline-block h-2.5 w-2.5 rounded-full" style={{ background: PAL[i % PAL.length] }} />{catIcon(catName(id))} {catName(id)}</span>
-                    <span>{rupiah(v)} · {Math.round((v / exp) * 100)}%</span>
-                  </div>
-                  <div className="mt-1 h-2 overflow-hidden rounded-full bg-charcoal/10"><div className="h-full rounded-full" style={{ width: `${(v / exp) * 100}%`, background: PAL[i % PAL.length] }} /></div>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </div>
+      <ul className="mt-2 space-y-3 pb-4">
+        {cats.length === 0 && <li className="text-charcoal/60">Belum ada pengeluaran.</li>}
+        {cats.map(([id, v]) => (
+          <li key={id}>
+            <div className="flex justify-between text-sm"><span>{catIcon(catName(id))} {catName(id)}</span><span>{rupiah(v)} · {Math.round((v / exp) * 100)}%</span></div>
+            <div className="mt-1 h-2 overflow-hidden rounded-full bg-charcoal/10"><div className="h-full bg-gold" style={{ width: `${(v / exp) * 100}%` }} /></div>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
