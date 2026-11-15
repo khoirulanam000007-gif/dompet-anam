@@ -75,12 +75,7 @@ function Main({ session }: { session: Session }) {
   const expense = sum("expense");
 
   return (
-    <div className="mx-auto min-h-screen max-w-xl pb-28">
-      <header className="no-print flex items-center justify-between bg-[#0b1f3a] px-5 py-4 text-white">
-        <span className="font-semibold tracking-wide">DOMPET ANAM</span>
-        <button onClick={() => supabase.auth.signOut()} className="text-sm text-white/80 underline">Keluar</button>
-      </header>
-
+    <div className="mx-auto min-h-screen max-w-xl pb-[calc(7rem+env(safe-area-inset-bottom))]">
       {error && <p className="px-5 pt-3 text-sm text-red-700">{error}</p>}
 
       {tab !== "beranda" && <PageHeader title={HEAD[tab][0]} sub={HEAD[tab][1]} icon={HEAD[tab][2]} colors={HEAD[tab][3]}>
@@ -127,12 +122,12 @@ function Main({ session }: { session: Session }) {
       <button
         onClick={() => setForm({ open: true, editing: null })}
         aria-label="Tambah transaksi"
-        className="no-print fixed bottom-24 right-5 z-20 h-14 w-14 rounded-full bg-emerald text-3xl leading-none text-white shadow-lg"
+        className="no-print fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-5 z-20 h-14 w-14 rounded-full bg-emerald text-3xl leading-none text-white shadow-lg"
       >
         +
       </button>
 
-      <nav className="no-print fixed inset-x-3 bottom-3 z-10 mx-auto max-w-xl rounded-3xl border border-charcoal/10 bg-white/90 shadow-lg backdrop-blur">
+      <nav className="no-print fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-10 mx-auto max-w-xl rounded-3xl border border-charcoal/10 bg-white/90 shadow-lg backdrop-blur">
         <div className="mx-auto grid max-w-xl grid-cols-5">
           {([["beranda", "Beranda"], ["transaksi", "Transaksi"], ["analisis", "Analisis"], ["rencana", "Rencana"], ["lainnya", "Lainnya"]] as const).map(([k, label]) => (
             <button

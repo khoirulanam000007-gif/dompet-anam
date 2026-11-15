@@ -167,6 +167,11 @@ export default function Settings({ categories, onChanged }: { categories: Catego
     if (await saveAvatar(null)) toast("Foto profil dihapus", "ok");
   }
 
+  async function logout() {
+    if (!(await confirmBox("Keluar dari akun Dompet Anam? Anda perlu masuk lagi untuk melihat data.", { okLabel: "Keluar" }))) return;
+    await supabase.auth.signOut();
+  }
+
   const card = "mt-4 rounded-2xl bg-white p-4 shadow-sm";
   return (
     <section className="px-5 pb-6 pt-2">
@@ -177,16 +182,6 @@ export default function Settings({ categories, onChanged }: { categories: Catego
           onSave={async (d) => { if (await saveAvatar(d)) { toast("Foto profil tersimpan", "ok"); setEditFile(null); } }}
         />
       )}
-      <div className={card}>
-        <div className="flex items-center justify-between">
-          <span className="font-semibold">🌙 Tema gelap</span>
-          <button onClick={toggleTheme} className={`h-7 w-12 rounded-full p-0.5 ${dark ? "bg-emerald" : "bg-charcoal/30"}`} aria-label="Tema gelap">
-            <span className={`block h-6 w-6 rounded-full bg-white transition-transform ${dark ? "translate-x-5" : ""}`} />
-          </button>
-        </div>
-        <p className="mt-1 text-sm text-charcoal/60">Mata uang: Rupiah (Rp)</p>
-      </div>
-
       <div className={card}>
         <div className="flex items-center gap-4">
           <Avatar src={profile.avatar} size={84} />
@@ -206,6 +201,20 @@ export default function Settings({ categories, onChanged }: { categories: Catego
         <button onClick={saveName} className={`${btn} mt-2`}>Simpan nama</button>
         <input className={`${field} mt-4`} type="password" placeholder="Kata sandi baru" value={pw} onChange={(e) => setPw(e.target.value)} />
         <button onClick={savePw} className={`${btn} mt-2`}>Ubah kata sandi</button>
+        <button onClick={logout} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-red-700 py-2.5 font-medium text-red-700">
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" /></svg>
+          Keluar dari akun
+        </button>
+      </div>
+
+      <div className={card}>
+        <div className="flex items-center justify-between">
+          <span className="font-semibold">🌙 Tema gelap</span>
+          <button onClick={toggleTheme} className={`h-7 w-12 rounded-full p-0.5 ${dark ? "bg-emerald" : "bg-charcoal/30"}`} aria-label="Tema gelap">
+            <span className={`block h-6 w-6 rounded-full bg-white transition-transform ${dark ? "translate-x-5" : ""}`} />
+          </button>
+        </div>
+        <p className="mt-1 text-sm text-charcoal/60">Mata uang: Rupiah (Rp)</p>
       </div>
 
       <div className={card}>
@@ -255,7 +264,6 @@ export default function Settings({ categories, onChanged }: { categories: Catego
       </div>
 
       {msg && <p className="mt-3 text-sm text-emerald">{msg}</p>}
-      <button onClick={() => supabase.auth.signOut()} className="mt-4 w-full rounded-xl border border-red-700 py-2.5 text-red-700">Keluar dari akun</button>
     </section>
   );
 }
