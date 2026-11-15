@@ -6,6 +6,7 @@ import { getMode, setMode, clearLock, bioSupported, registerBio, verifyBio, type
 import type { Category } from "../lib/types";
 import Avatar from "../components/Avatar";
 import AvatarEditor from "../components/AvatarEditor";
+import PasswordCard from "../components/PasswordCard";
 import { useProfile, saveAvatar, setProfileName } from "../lib/profile";
 
 const field = "w-full rounded-xl border border-charcoal/15 bg-white px-4 py-3 outline-none focus:border-emerald focus:ring-2 focus:ring-emerald/30";
@@ -98,7 +99,6 @@ export default function Settings({ categories, onChanged }: { categories: Catego
   const [editFile, setEditFile] = useState<File | null>(null);
   const galRef = useRef<HTMLInputElement>(null);
   const camRef = useRef<HTMLInputElement>(null);
-  const [pw, setPw] = useState("");
   const [cName, setCName] = useState("");
   const [cKind, setCKind] = useState<"expense" | "income">("expense");
   const [msg, setMsg] = useState("");
@@ -176,14 +176,8 @@ export default function Settings({ categories, onChanged }: { categories: Catego
     const { data } = await supabase.auth.getUser();
     if (!data.user) return;
     const { error } = await supabase.from("profiles").update({ full_name: name.trim() }).eq("id", data.user.id);
-    setMsg(error ? "Gagal menyimpan nama." : "Nama tersimpan.");
-    if (!error) setProfileName(name.trim());
-  }
-  async function savePw() {
-    if (pw.length < 6) return setMsg("Kata sandi minimal 6 karakter.");
-    const { error } = await supabase.auth.updateUser({ password: pw });
-    setMsg(error ? "Gagal mengubah kata sandi." : "Kata sandi diubah.");
-    if (!error) setPw("");
+    if (error) toast("Gagal menyimpan nama. Coba lagi.", "error");
+    else { setProfileName(name.trim()); toast("Nama tersimpan", "ok"); }
   }
   async function addCat() {
     if (!cName.trim()) return;
@@ -227,25 +221,35 @@ export default function Settings({ categories, onChanged }: { categories: Catego
         />
       )}
       <div className={card}>
-        <div className="flex items-center gap-4">
-          <Avatar src={profile.avatar} size={84} />
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold">👤 Profil</p>
-            <p className="truncate text-sm text-charcoal/60">{email}</p>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-              <button onClick={() => galRef.current?.click()} className="rounded-full bg-navy px-3 py-1.5 text-white">{profile.avatar ? "Ganti foto" : "Pilih foto"}</button>
-              <button onClick={() => camRef.current?.click()} className="rounded-full bg-charcoal/10 px-3 py-1.5">📷 Kamera</button>
-              {profile.avatar && <button onClick={removeAvatar} className="px-2 py-1.5 text-red-700 underline">Hapus</button>}
-            </div>
-          </div>
+        <div className="flex flex-col items-center text-center">
+          <button onClick={() => galRef.current?.click()} aria-label="Ubah foto profil" className="relative rounded-full">
+            <Avatar src={profile.avatar} size={96} />
+            <span className="absolute -bottom-0.5 -right-0.5 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-gold text-sm" aria-hidden>✎</span>
+          </button>
+          <p className="mt-3 text-lg font-bold">{profile.name || name || "Profil"}</p>
+          <p className="max-w-full truncate text-sm text-charcoal/60">{email}</p>
         </div>
+        <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+          <button onClick={() => galRef.current?.click()} className="rounded-xl bg-navy py-2.5 font-medium text-white">🖼️ {profile.avatar ? "Ganti foto" : "Pilih foto"}</button>
+          <button onClick={() => camRef.current?.click()} className="rounded-xl border border-charcoal/15 bg-white py-2.5 font-medium">📷 Kamera</button>
+        </div>
+        {profile.avatar && <button onClick={removeAvatar} className="mt-2 w-full py-1.5 text-sm text-red-700 underline">Hapus foto</button>}
         <input ref={galRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={pick} />
         <input ref={camRef} type="file" accept="image/jpeg,image/png,image/webp" capture="user" className="hidden" onChange={pick} />
-        <input className={`${field} mt-2`} placeholder="Nama" value={name} onChange={(e) => setName(e.target.value)} />
-        <button onClick={saveName} className={`${btn} mt-2`}>Simpan nama</button>
-        <input className={`${field} mt-4`} type="password" placeholder="Kata sandi baru" value={pw} onChange={(e) => setPw(e.target.value)} />
-        <button onClick={savePw} className={`${btn} mt-2`}>Ubah kata sandi</button>
-        <button onClick={logout} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-red-700 py-2.5 font-medium text-red-700">
+
+        <div className="mt-4 border-t border-charcoal/10 pt-4">
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium text-charcoal/80">Nama tampilan</span>
+            <input className={field} placeholder="Nama Anda" value={name} onChange={(e) => setName(e.target.value)} />
+          </label>
+          <button onClick={saveName} disabled={!name.trim() || name.trim() === profile.name} className={`${btn} mt-2 w-full`}>Simpan nama</button>
+        </div>
+      </div>
+
+      <PasswordCard email={email} />
+
+      <div className={card}>
+        <button onClick={logout} className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-700 py-2.5 font-medium text-red-700">
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" /></svg>
           Keluar dari akun
         </button>
