@@ -27,9 +27,9 @@ export function seedDemo(now = new Date()): Record<string, Row[]> {
   const at = (off: number, h: number, m = 0) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + off, Math.min(h, off === 0 ? now.getHours() : 23), m).toISOString();
   const day = (off: number) => ymd(new Date(now.getFullYear(), now.getMonth(), now.getDate() + off));
   const base = { user_id: "demo", created_at: at(-90, 8) };
-  const T: Record<string, Row[]> = { profiles: [], categories: [], accounts: [], savings_goals: [], debts: [], budgets: [], recurring_rules: [], transactions: [], transaction_receipts: [], notification_settings: [], push_subscriptions: [] };
+  const T: Record<string, Row[]> = { profiles: [], categories: [], accounts: [], savings_goals: [], debts: [], budgets: [], recurring_rules: [], transactions: [] };
 
-  T.profiles.push({ id: "demo", full_name: "Pengguna Demo", avatar: null, onboarded_at: base.created_at, created_at: base.created_at });
+  T.profiles.push({ id: "demo", full_name: "Pengguna Demo", avatar: null, created_at: base.created_at });
 
   const cid: Record<string, string> = {};
   const cats: [string, string][] = [
@@ -255,7 +255,6 @@ class Query implements PromiseLike<Res> {
     for (const [t, col] of REFS[this.table] ?? [])
       if (rows.some((r) => T[t].some((x) => x[col] === r.id))) return { data: null, error: { message: `violates foreign key constraint on ${t}`, code: "23503" } };
     if (this.table === "recurring_rules") T.transactions.forEach((x) => { if (rows.some((r) => r.id === x.recurring_rule_id)) x.recurring_rule_id = null; });
-    if (this.table === "transactions") T.transaction_receipts = T.transaction_receipts.filter((x) => !rows.some((r) => r.id === x.transaction_id));
     for (const r of rows) tbl.splice(tbl.indexOf(r), 1);
     return this.ret ? this.finish(rows) : { data: null, error: null };
   }

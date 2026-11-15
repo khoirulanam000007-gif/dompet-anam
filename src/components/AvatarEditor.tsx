@@ -1,14 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 
-// Ukuran area potong menyesuaikan tinggi/lebar layar supaya tombol Simpan selalu terlihat.
-const calcV = () => Math.max(180, Math.min(280, window.innerWidth - 72, Math.round(window.innerHeight * 0.4)));
+const V = 260;   // ukuran area potong di layar (px)
 const OUT = 256; // ukuran foto hasil (px) -> file kecil
 
 type Props = { file: File; onCancel: () => void; onSave: (dataUrl: string) => Promise<void> | void };
 
 export default function AvatarEditor({ file, onCancel, onSave }: Props) {
-  const [V] = useState(calcV);
   const [url, setUrl] = useState("");
   const [dim, setDim] = useState<{ w: number; h: number } | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -68,7 +65,7 @@ export default function AvatarEditor({ file, onCancel, onSave }: Props) {
     setBusy(false);
   }
 
-  const P = 56;
+  const P = 72;
   const img = (k: number): React.CSSProperties =>
     dim ? {
       position: "absolute", left: "50%", top: "50%", maxWidth: "none",
@@ -76,69 +73,45 @@ export default function AvatarEditor({ file, onCancel, onSave }: Props) {
       transform: `translate(calc(-50% + ${pos.x * k}px), calc(-50% + ${pos.y * k}px))`,
     } : {};
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !busy) onCancel(); };
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKey);
-    return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", onKey); };
-  }, [busy, onCancel]);
+  return (
+    <div className="fade-in fixed inset-0 z-40 flex items-end justify-center bg-black/60 sm:items-center">
+      <div className="sheet-up w-full max-w-sm rounded-t-3xl bg-paper p-5 sm:rounded-3xl">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-navy">Atur foto profil</h3>
+          <button onClick={onCancel} className="text-sm underline">Batal</button>
+        </div>
+        <p className="mt-1 text-center text-xs text-charcoal/60">Geser foto untuk mengatur posisi, gunakan penggeser untuk zoom.</p>
 
-  return createPortal(
-    <div className="fade-in fixed inset-0 z-[58] flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center" onClick={() => !busy && onCancel()}>
-      <div
-        role="dialog" aria-modal="true" aria-label="Atur foto profil"
-        onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[100dvh] w-full max-w-sm flex-col overflow-hidden rounded-t-3xl bg-paper shadow-2xl sm:max-h-[92dvh] sm:rounded-3xl"
-      >
-        {/* Kepala: tetap di atas */}
-        <div className="flex items-center justify-between px-5 pb-2 pt-4">
-          <div>
-            <h3 className="text-lg font-bold text-navy">Atur foto profil</h3>
-            <p className="text-xs text-charcoal/60">Geser untuk memosisikan, cubit atau pakai penggeser untuk zoom.</p>
-          </div>
-          <button onClick={onCancel} disabled={busy} aria-label="Tutup" className="flex h-9 w-9 items-center justify-center rounded-full bg-charcoal/10 text-lg leading-none">×</button>
+        <div
+          className="relative mx-auto mt-3 touch-none select-none overflow-hidden rounded-3xl bg-black"
+          style={{ width: V, height: V, cursor: "grab" }}
+          onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); drag.current = { px: e.clientX, py: e.clientY, ox: pos.x, oy: pos.y }; }}
+          onPointerMove={(e) => { const d = drag.current; if (d) setPos(clamp({ x: d.ox + e.clientX - d.px, y: d.oy + e.clientY - d.py }, s)); }}
+          onPointerUp={() => { drag.current = null; }}
+          onPointerCancel={() => { drag.current = null; }}
+        >
+          {dim && <img ref={imgRef} src={url} alt="" draggable={false} style={img(1)} />}
+          <div className="pointer-events-none absolute inset-0 rounded-full" style={{ boxShadow: "0 0 0 400px rgba(0,0,0,.55), inset 0 0 0 2px #c9a961" }} />
         </div>
 
-        {/* Isi: bisa digulir bila layar sangat pendek */}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-3">
-          <div
-            className="relative mx-auto mt-2 touch-none select-none overflow-hidden rounded-3xl bg-black"
-            style={{ width: V, height: V, cursor: "grab" }}
-            onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); drag.current = { px: e.clientX, py: e.clientY, ox: pos.x, oy: pos.y }; }}
-            onPointerMove={(e) => { const d = drag.current; if (d) setPos(clamp({ x: d.ox + e.clientX - d.px, y: d.oy + e.clientY - d.py }, s)); }}
-            onPointerUp={() => { drag.current = null; }}
-            onPointerCancel={() => { drag.current = null; }}
-          >
-            {dim && <img ref={imgRef} src={url} alt="" draggable={false} style={img(1)} />}
-            <div className="pointer-events-none absolute inset-0 rounded-full" style={{ boxShadow: "0 0 0 600px rgba(0,0,0,.55), inset 0 0 0 2px #c9a961" }} />
-          </div>
-
-          <div className="mt-4 flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm">
-            <span className="text-base" aria-hidden>🔍</span>
-            <input type="range" aria-label="Zoom" min={1} max={3} step={0.01} value={zoom} onChange={(e) => changeZoom(Number(e.target.value))} className="flex-1 accent-[#0f9d6b]" />
-            <button onClick={() => { setZoom(1); setPos({ x: 0, y: 0 }); }} className="rounded-full bg-charcoal/10 px-3 py-1 text-xs font-medium">Reset</button>
-          </div>
-
-          <div className="mt-3 flex items-center gap-3">
-            <div className="relative shrink-0 overflow-hidden rounded-full bg-black" style={{ width: P, height: P, boxShadow: "0 0 0 2px #c9a961" }}>
-              {dim && <img src={url} alt="" draggable={false} style={img(P / V)} />}
-            </div>
-            <p className="text-xs text-charcoal/60">Pratinjau: seperti ini foto Anda tampil di Beranda dan Profil.</p>
-          </div>
-
-          {err && <p className="mt-3 rounded-xl bg-red-500/10 px-3 py-2 text-sm text-red-700">{err}</p>}
+        <div className="mt-4 flex items-center gap-3">
+          <span className="text-xs text-charcoal/60">Zoom</span>
+          <input type="range" min={1} max={3} step={0.01} value={zoom} onChange={(e) => changeZoom(Number(e.target.value))} className="flex-1 accent-[#0f9d6b]" />
+          <button onClick={() => { setZoom(1); setPos({ x: 0, y: 0 }); }} className="text-xs underline">Reset</button>
         </div>
 
-        {/* Kaki: tombol selalu terlihat, tanpa perlu menggulir */}
-        <div className="grid grid-cols-[1fr_1.6fr] gap-2 border-t border-charcoal/10 bg-paper px-5 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3">
-          <button onClick={onCancel} disabled={busy} className="rounded-xl border border-charcoal/15 bg-white py-3 font-medium text-charcoal disabled:opacity-60">Batal</button>
-          <button onClick={save} disabled={busy || !dim} className="rounded-xl bg-emerald py-3 font-semibold text-white disabled:opacity-60">
-            {busy ? "Menyimpan..." : "Simpan foto"}
-          </button>
+        <div className="mt-3 flex items-center gap-3">
+          <div className="relative shrink-0 overflow-hidden rounded-full" style={{ width: P, height: P, boxShadow: "0 0 0 2px #c9a961" }}>
+            {dim && <img src={url} alt="" draggable={false} style={img(P / V)} />}
+          </div>
+          <div className="text-sm"><p className="font-semibold">Pratinjau</p><p className="text-xs text-charcoal/60">Seperti ini foto Anda tampil di aplikasi.</p></div>
         </div>
+
+        {err && <p className="mt-3 text-sm text-red-700">{err}</p>}
+        <button onClick={save} disabled={busy || !dim} className="mt-4 w-full rounded-xl bg-emerald py-3 font-medium text-white disabled:opacity-60">
+          {busy ? "Menyimpan..." : "Simpan foto"}
+        </button>
       </div>
-    </div>,
-    document.body
+    </div>
   );
 }

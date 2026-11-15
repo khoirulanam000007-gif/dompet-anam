@@ -9,7 +9,6 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [show, setShow] = useState(false);
 
   async function forgot() {
     if (!email.trim()) return setMsg("Isi email dulu, lalu tekan Lupa kata sandi.");
@@ -40,8 +39,6 @@ export default function Login() {
     setBusy(false);
   }
 
-  const onEnter = (e: React.KeyboardEvent) => { if (e.key === "Enter" && !busy) submit(); };
-
   const input =
     "w-full rounded-xl border border-charcoal/15 bg-white px-4 py-3 text-base outline-none focus:border-emerald focus:ring-2 focus:ring-emerald/30";
 
@@ -58,15 +55,10 @@ export default function Login() {
 
         <div className="mt-6 space-y-3">
           {mode === "daftar" && (
-            <input className={input} placeholder="Nama" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={onEnter} />
+            <input className={input} placeholder="Nama" value={name} onChange={(e) => setName(e.target.value)} />
           )}
-          <input className={input} type="email" inputMode="email" autoComplete="email" autoCapitalize="none" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={onEnter} />
-          <div className="relative">
-            <input className={`${input} pr-12`} type={show ? "text" : "password"} autoComplete={mode === "masuk" ? "current-password" : "new-password"} placeholder="Kata sandi" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={onEnter} />
-            <button type="button" onClick={() => setShow((v) => !v)} aria-label={show ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"} className="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-charcoal/60">
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" />{show && <path d="M4 4l16 16" />}</svg>
-            </button>
-          </div>
+          <input className={input} type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input className={input} type="password" placeholder="Kata sandi" value={password} onChange={(e) => setPassword(e.target.value)} />
         </div>
 
         {msg && <p className="mt-3 text-sm text-red-700">{msg}</p>}

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-type Props = { title: string; sub: string; icon: string; colors: [string, string]; children?: ReactNode };
+type Props = { title: string; sub: string; icon: ReactNode; colors: [string, string]; children?: ReactNode };
 
 export default function PageHeader({ title, sub, icon, colors, children }: Props) {
   return (

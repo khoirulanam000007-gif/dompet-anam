@@ -76,7 +76,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: non
 
 /* ===== Tahap 16: halaman dalam setara Beranda ===== */
 .page-hero { padding-bottom: 3rem; }
-.page-hero + * { position: relative; margin-top: -1.75rem; }
+.page-hero + * { position: relative; z-index: 1; margin-top: -1.75rem; }
 .bg-charcoal\/10.p-1.rounded-xl {
   background: var(--surface);
   border-radius: 1rem;
@@ -100,6 +100,3 @@ html.dark { --surface: #16243b; }
 .dark .text-emerald { color: #34d399; }
 .dark option { background: var(--surface); color: var(--color-charcoal); }
 .dark ::placeholder { color: rgba(228, 231, 236, 0.5); }
-
-/* ===== Tahap 23: jendela (sheet) selalu di atas menu bawah, aman di layar HP ===== */
-.sheet-up { max-height: 92dvh; padding-bottom: calc(1.25rem + env(safe-area-inset-bottom)); }

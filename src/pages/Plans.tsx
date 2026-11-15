@@ -5,7 +5,7 @@ import { rupiah } from "../lib/format";
 import { fmtDate } from "../lib/types";
 import type { Account, Category } from "../lib/types";
 import { processRecurring } from "../lib/recurring";
-import { catIcon } from "../lib/icons";
+import LucideIcon, { CatIcon } from "../components/LucideIcon";
 
 type Budget = { id: string; category_id: string; limit_amount: number };
 type Goal = { id: string; name: string; target_amount: number; target_date: string | null; saved_amount: number };
@@ -29,19 +29,19 @@ function Ring({ pct, color = "#0f9d6b" }: { pct: number; color?: string }) {
 
 function goalHint(g: { saved_amount: number; target_amount: number; target_date: string | null }) {
   const left = g.target_amount - g.saved_amount;
-  if (left <= 0) return { text: "🎉 Target tercapai! Selamat.", cls: "text-emerald font-medium" };
-  if (!g.target_date) return { text: `Sisa ${rupiah(left)} lagi.`, cls: "text-charcoal/70" };
+  if (left <= 0) return { text: "Target tercapai! Selamat.", cls: "text-emerald font-medium", done: true };
+  if (!g.target_date) return { text: `Sisa ${rupiah(left)} lagi.`, cls: "text-charcoal/70", done: false };
   const days = Math.ceil((new Date(g.target_date).getTime() - Date.now()) / 86400000);
-  if (days <= 0) return { text: `Tanggal target sudah lewat. Sisa ${rupiah(left)}.`, cls: "text-red-700" };
+  if (days <= 0) return { text: `Tanggal target sudah lewat. Sisa ${rupiah(left)}.`, cls: "text-red-700", done: false };
   const months = Math.max(1, Math.round(days / 30.4));
   const per = Math.ceil(left / months / 1000) * 1000;
-  return { text: `Setor sekitar ${rupiah(per)} per bulan agar tepat waktu (±${months} bulan lagi).`, cls: "text-navy" };
+  return { text: `Setor sekitar ${rupiah(per)} per bulan agar tepat waktu (±${months} bulan lagi).`, cls: "text-navy", done: false };
 }
 
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fade-in fixed inset-0 z-30 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center">
-      <div className="sheet-up max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-paper p-5 sm:rounded-3xl">
+      <div className="sheet-up max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-paper p-5 sm:rounded-3xl">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-navy">{title}</h3>
           <button onClick={onClose} className="text-sm underline">Tutup</button>
@@ -138,7 +138,7 @@ function Budgets({ categories }: { categories: Category[] }) {
               <div className="flex items-center gap-3">
                 <Ring pct={pct} color={over ? "#dc2626" : warn ? "#c9a961" : "#0f9d6b"} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold">{catIcon(catName(b.category_id))} {catName(b.category_id)}</p>
+                  <p className="flex items-center gap-1.5 font-semibold"><CatIcon name={catName(b.category_id)} className="h-4 w-4 shrink-0 text-navy" /><span className="truncate">{catName(b.category_id)}</span></p>
                   <p className="text-xs text-charcoal/60">Batas {rupiah(b.limit_amount)}</p>
                 </div>
               </div>
@@ -245,7 +245,7 @@ function Savings({ accounts, onChanged }: { accounts: Account[]; onChanged: () =
                   <p className="text-sm text-charcoal/70">{rupiah(g.saved_amount)} dari {rupiah(g.target_amount)}</p>
                 </div>
               </div>
-              <p className={`mt-2 text-sm ${goalHint(g).cls}`}>{goalHint(g).text}</p>
+              <p className={`mt-2 text-sm ${goalHint(g).cls}`}>{goalHint(g).done && <LucideIcon name="partyPopper" className="mr-1 inline h-4 w-4 align-[-2px]" />}{goalHint(g).text}</p>
               {g.target_date && <p className="text-sm text-charcoal/60">Target: {new Date(g.target_date).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}</p>}
               <div className="mt-2 flex flex-wrap gap-4 text-sm">
                 <button onClick={() => openMv(g, "saving_deposit")} className="text-emerald underline">Setor</button>

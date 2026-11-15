@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabase";
 import { confirmBox, toast } from "../lib/ui";
 import { rupiah } from "../lib/format";
 import type { Account } from "../lib/types";
-import { ACC_ICON } from "../lib/icons";
+import LucideIcon, { ACC_LUCIDE } from "../components/LucideIcon";
 
 const GRAD: Record<string, string> = {
   cash: "linear-gradient(135deg,#0f6b52,#13b57f)",
@@ -72,7 +72,7 @@ export default function Accounts({ accounts, onChanged, onTransfer }: Props) {
       <ul className="mt-3 grid gap-3">
         {accounts.map((a) => (
           <li key={a.id} className="rise overflow-hidden rounded-3xl p-4 text-white shadow-sm" style={{ background: GRAD[a.type] ?? GRAD.other }}>
-            <p className="text-sm text-white/80">{ACC_ICON[a.type] ?? "💳"} {TYPES[a.type] ?? a.type}</p>
+            <p className="flex items-center gap-1.5 text-sm text-white/80"><LucideIcon name={ACC_LUCIDE[a.type] ?? "creditCard"} className="h-4 w-4" /> {TYPES[a.type] ?? a.type}</p>
             <p className="mt-3 text-sm text-white/80">{a.name}</p>
             <p className="text-2xl font-bold tracking-tight">{rupiah(a.balance)}</p>
             <div className="mt-2 flex gap-4 text-sm text-white/90">
@@ -85,7 +85,7 @@ export default function Accounts({ accounts, onChanged, onTransfer }: Props) {
 
       {editing && (
         <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/50 sm:items-center">
-          <div className="sheet-up max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-paper p-5 sm:rounded-3xl">
+          <div className="w-full max-w-md rounded-t-3xl bg-paper p-5 sm:rounded-3xl">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-navy">{editing === "new" ? "Tambah rekening" : "Ubah rekening"}</h3>
               <button onClick={() => setEditing(null)} className="text-sm underline">Tutup</button>

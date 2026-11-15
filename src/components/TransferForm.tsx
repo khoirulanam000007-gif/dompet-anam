@@ -45,7 +45,7 @@ export default function TransferForm({ accounts, onClose, onSaved }: Props) {
 
   return (
     <div className="fade-in fixed inset-0 z-30 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center">
-      <div className="sheet-up max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-paper p-5 sm:rounded-3xl">
+      <div className="sheet-up max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-paper p-5 sm:rounded-3xl">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-navy">Transfer antar-rekening</h2>
           <button onClick={onClose} className="text-sm underline">Tutup</button>

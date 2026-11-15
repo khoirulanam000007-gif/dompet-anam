@@ -2,12 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { confirmBox, toast } from "../lib/ui";
 import { restoreBackup } from "../lib/restore";
+import LucideIcon, { type LucideName } from "../components/LucideIcon";
 import { getMode, setMode, clearLock, bioSupported, registerBio, verifyBio, type LockMode } from "../lib/lock";
 import type { Category } from "../lib/types";
 import Avatar from "../components/Avatar";
 import AvatarEditor from "../components/AvatarEditor";
-import NotificationCard from "../components/NotificationCard";
-import PasswordCard, { PwField, StrengthBar } from "../components/PasswordCard";
 import { useProfile, saveAvatar, setProfileName } from "../lib/profile";
 
 const field = "w-full rounded-xl border border-charcoal/15 bg-white px-4 py-3 outline-none focus:border-emerald focus:ring-2 focus:ring-emerald/30";
@@ -73,29 +72,20 @@ const btn = "rounded-xl bg-emerald px-4 py-2.5 font-medium text-white disabled:o
 
 export function NewPassword({ onDone }: { onDone: () => void }) {
   const [pw, setPw] = useState("");
-  const [pw2, setPw2] = useState("");
   const [msg, setMsg] = useState("");
-  const [busy, setBusy] = useState(false);
   async function save() {
     if (pw.length < 6) return setMsg("Kata sandi minimal 6 karakter.");
-    if (pw !== pw2) return setMsg("Kedua kata sandi belum sama.");
-    setBusy(true);
     const { error } = await supabase.auth.updateUser({ password: pw });
-    setBusy(false);
     if (error) setMsg("Gagal mengubah kata sandi. Minta tautan baru.");
-    else { toast("Kata sandi baru tersimpan", "ok"); onDone(); }
+    else onDone();
   }
   return (
-    <main className="hero flex min-h-screen items-center justify-center p-5">
-      <div className="rise w-full max-w-sm space-y-3 rounded-3xl bg-paper p-7 shadow-xl">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border-2 border-gold text-2xl">🔑</div>
-        <h1 className="text-center text-xl font-bold text-navy">Atur kata sandi baru</h1>
-        <p className="text-center text-sm text-charcoal/70">Buat kata sandi baru untuk akun Anda.</p>
-        <PwField label="Kata sandi baru" value={pw} onChange={(v) => { setPw(v); setMsg(""); }} autoComplete="new-password" />
-        <StrengthBar pw={pw} />
-        <PwField label="Ulangi kata sandi baru" value={pw2} onChange={(v) => { setPw2(v); setMsg(""); }} autoComplete="new-password" invalid={pw2.length > 0 && pw !== pw2} />
-        {msg && <p role="alert" className="rounded-xl bg-red-500/10 px-3 py-2 text-sm text-red-700">{msg}</p>}
-        <button onClick={save} disabled={busy || pw.length < 6 || pw !== pw2} className={`${btn} w-full py-3 disabled:opacity-50`}>{busy ? "Menyimpan..." : "Simpan kata sandi"}</button>
+    <main className="flex min-h-screen items-center justify-center bg-navy p-5">
+      <div className="w-full max-w-sm space-y-3 rounded-3xl bg-paper p-7">
+        <h1 className="text-xl font-semibold text-navy">Atur kata sandi baru</h1>
+        <input className={field} type="password" placeholder="Kata sandi baru" value={pw} onChange={(e) => setPw(e.target.value)} />
+        {msg && <p className="text-sm text-red-700">{msg}</p>}
+        <button onClick={save} className={`${btn} w-full`}>Simpan</button>
       </div>
     </main>
   );
@@ -109,6 +99,7 @@ export default function Settings({ categories, onChanged }: { categories: Catego
   const [editFile, setEditFile] = useState<File | null>(null);
   const galRef = useRef<HTMLInputElement>(null);
   const camRef = useRef<HTMLInputElement>(null);
+  const [pw, setPw] = useState("");
   const [cName, setCName] = useState("");
   const [cKind, setCKind] = useState<"expense" | "income">("expense");
   const [msg, setMsg] = useState("");
@@ -186,8 +177,14 @@ export default function Settings({ categories, onChanged }: { categories: Catego
     const { data } = await supabase.auth.getUser();
     if (!data.user) return;
     const { error } = await supabase.from("profiles").update({ full_name: name.trim() }).eq("id", data.user.id);
-    if (error) toast("Gagal menyimpan nama. Coba lagi.", "error");
-    else { setProfileName(name.trim()); toast("Nama tersimpan", "ok"); }
+    setMsg(error ? "Gagal menyimpan nama." : "Nama tersimpan.");
+    if (!error) setProfileName(name.trim());
+  }
+  async function savePw() {
+    if (pw.length < 6) return setMsg("Kata sandi minimal 6 karakter.");
+    const { error } = await supabase.auth.updateUser({ password: pw });
+    setMsg(error ? "Gagal mengubah kata sandi." : "Kata sandi diubah.");
+    if (!error) setPw("");
   }
   async function addCat() {
     if (!cName.trim()) return;
@@ -231,37 +228,25 @@ export default function Settings({ categories, onChanged }: { categories: Catego
         />
       )}
       <div className={card}>
-        <div className="flex flex-col items-center text-center">
-          <button onClick={() => galRef.current?.click()} aria-label="Ubah foto profil" className="relative rounded-full">
-            <Avatar src={profile.avatar} size={96} />
-            <span className="absolute -bottom-0.5 -right-0.5 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-gold text-sm" aria-hidden>✎</span>
-          </button>
-          <p className="mt-3 text-lg font-bold">{profile.name || name || "Profil"}</p>
-          <p className="max-w-full truncate text-sm text-charcoal/60">{email}</p>
+        <div className="flex items-center gap-4">
+          <Avatar src={profile.avatar} size={84} />
+          <div className="min-w-0 flex-1">
+            <p className="flex items-center gap-2 font-semibold"><LucideIcon name="user" className="h-4 w-4 text-navy" /> Profil</p>
+            <p className="truncate text-sm text-charcoal/60">{email}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+              <button onClick={() => galRef.current?.click()} className="rounded-full bg-navy px-3 py-1.5 text-white">{profile.avatar ? "Ganti foto" : "Pilih foto"}</button>
+              <button onClick={() => camRef.current?.click()} className="flex items-center gap-1.5 rounded-full bg-charcoal/10 px-3 py-1.5"><LucideIcon name="camera" className="h-4 w-4" /> Kamera</button>
+              {profile.avatar && <button onClick={removeAvatar} className="px-2 py-1.5 text-red-700 underline">Hapus</button>}
+            </div>
+          </div>
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-          <button onClick={() => galRef.current?.click()} className="rounded-xl bg-navy py-2.5 font-medium text-white">🖼️ {profile.avatar ? "Ganti foto" : "Pilih foto"}</button>
-          <button onClick={() => camRef.current?.click()} className="rounded-xl border border-charcoal/15 bg-white py-2.5 font-medium">📷 Kamera</button>
-        </div>
-        {profile.avatar && <button onClick={removeAvatar} className="mt-2 w-full py-1.5 text-sm text-red-700 underline">Hapus foto</button>}
         <input ref={galRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={pick} />
         <input ref={camRef} type="file" accept="image/jpeg,image/png,image/webp" capture="user" className="hidden" onChange={pick} />
-
-        <div className="mt-4 border-t border-charcoal/10 pt-4">
-          <label className="block">
-            <span className="mb-1 block text-sm font-medium text-charcoal/80">Nama tampilan</span>
-            <input className={field} placeholder="Nama Anda" value={name} onChange={(e) => setName(e.target.value)} />
-          </label>
-          <button onClick={saveName} disabled={!name.trim() || name.trim() === profile.name} className={`${btn} mt-2 w-full`}>Simpan nama</button>
-        </div>
-      </div>
-
-      <NotificationCard />
-
-      <PasswordCard email={email} />
-
-      <div className={card}>
-        <button onClick={logout} className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-700 py-2.5 font-medium text-red-700">
+        <input className={`${field} mt-2`} placeholder="Nama" value={name} onChange={(e) => setName(e.target.value)} />
+        <button onClick={saveName} className={`${btn} mt-2`}>Simpan nama</button>
+        <input className={`${field} mt-4`} type="password" placeholder="Kata sandi baru" value={pw} onChange={(e) => setPw(e.target.value)} />
+        <button onClick={savePw} className={`${btn} mt-2`}>Ubah kata sandi</button>
+        <button onClick={logout} className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-red-700 py-2.5 font-medium text-red-700">
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" /></svg>
           Keluar dari akun
         </button>
@@ -269,7 +254,7 @@ export default function Settings({ categories, onChanged }: { categories: Catego
 
       <div className={card}>
         <div className="flex items-center justify-between">
-          <span className="font-semibold">🌙 Tema gelap</span>
+          <span className="flex items-center gap-2 font-semibold"><LucideIcon name="moon" className="h-4 w-4 text-navy" /> Tema gelap</span>
           <button onClick={toggleTheme} className={`h-7 w-12 rounded-full p-0.5 ${dark ? "bg-emerald" : "bg-charcoal/30"}`} aria-label="Tema gelap">
             <span className={`block h-6 w-6 rounded-full bg-white transition-transform ${dark ? "translate-x-5" : ""}`} />
           </button>
@@ -278,7 +263,7 @@ export default function Settings({ categories, onChanged }: { categories: Catego
       </div>
 
       <div className={card}>
-        <p className="font-semibold">🏷️ Kategori</p>
+        <p className="flex items-center gap-2 font-semibold"><LucideIcon name="tags" className="h-4 w-4 text-navy" /> Kategori</p>
         <div className="mt-2 flex gap-2">
           <input className={field} placeholder="Nama kategori baru" value={cName} onChange={(e) => setCName(e.target.value)} />
           <select className="rounded-xl border border-charcoal/15 bg-white px-2" value={cKind} onChange={(e) => setCKind(e.target.value as "income" | "expense")}>
@@ -300,7 +285,7 @@ export default function Settings({ categories, onChanged }: { categories: Catego
       </div>
 
       <div className={card}>
-        <p className="font-semibold">🔒 Kunci aplikasi</p>
+        <p className="flex items-center gap-2 font-semibold"><LucideIcon name="lock" className="h-4 w-4 text-navy" /> Kunci aplikasi</p>
         <p className="text-sm text-charcoal/60">Berlaku di perangkat ini saja. Tidak menggantikan kata sandi akun.</p>
         <div className="mt-3 space-y-2">
           {([
@@ -330,7 +315,7 @@ export default function Settings({ categories, onChanged }: { categories: Catego
       </div>
 
       <div className={card}>
-        <p className="font-semibold">💾 Cadangan data</p>
+        <p className="flex items-center gap-2 font-semibold"><LucideIcon name="databaseBackup" className="h-4 w-4 text-navy" /> Cadangan data</p>
         <p className="text-sm text-charcoal/60">Unduh salinan seluruh data Anda dalam satu file.</p>
         <button onClick={backup} className={`${btn} mt-2`}>Unduh cadangan</button>
         <p className="mt-4 text-sm text-charcoal/60">Pindah HP atau akun? Pulihkan data dari file cadangan. Aman diulang, tidak membuat data ganda.</p>
@@ -338,12 +323,6 @@ export default function Settings({ categories, onChanged }: { categories: Catego
           Pulihkan dari cadangan
           <input type="file" accept="application/json,.json" className="hidden" onChange={restore} disabled={busy} />
         </label>
-      </div>
-
-      <div className={`${card} text-center`}>
-        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border-2 border-gold text-xs font-bold text-navy">DA</div>
-        <p className="mt-2 font-semibold">DOMPET ANAM</p>
-        <p className="text-xs text-charcoal/60">Versi Tahap 24 · Data Anda tersimpan di akun pribadi Anda</p>
       </div>
 
       {msg && <p className="mt-3 text-sm text-emerald">{msg}</p>}

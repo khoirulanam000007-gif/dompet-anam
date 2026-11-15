@@ -1,11 +1,9 @@
 import { Fragment, useEffect, useRef, useState } from "react";
+import LucideIcon, { CatIcon } from "../components/LucideIcon";
 import { supabase } from "../lib/supabase";
 import { confirmBox, toast } from "../lib/ui";
 import { rupiah } from "../lib/format";
-import { catIcon } from "../lib/icons";
 import type { Account, Category, Tx } from "../lib/types";
-import { getReceipt, receiptIds } from "../lib/receipts";
-import ReceiptViewer from "../components/ReceiptViewer";
 
 type Props = {
   txs: Tx[];
@@ -41,16 +39,6 @@ export default function Transactions({ txs, accounts, categories, onEdit, onChan
   const [end, setEnd] = useState(txs.length < PAGE);
   const [busy, setBusy] = useState(false);
   const sentinel = useRef<HTMLDivElement>(null);
-  // Transaksi yang punya foto struk (hanya id-nya, bukan fotonya)
-  const [withReceipt, setWithReceipt] = useState<Set<string>>(new Set());
-  const [viewing, setViewing] = useState<{ src: string | null } | null>(null);
-  useEffect(() => { let alive = true; receiptIds().then((s) => { if (alive) setWithReceipt(s); }); return () => { alive = false; }; }, [txs]);
-  async function openReceipt(id: string) {
-    setViewing({ src: null });
-    const src = await getReceipt(id);
-    if (!src) { setViewing(null); return toast("Foto struk tidak ditemukan.", "error"); }
-    setViewing({ src });
-  }
   const searching = !!searchable && (!!q.trim() || f !== "all");
   // Data baru dari induk (mis. setelah simpan/hapus) = mulai lagi dari halaman pertama.
   useEffect(() => { setOlder([]); setEnd(txs.length < PAGE); }, [txs]);
@@ -107,7 +95,7 @@ export default function Transactions({ txs, accounts, categories, onEdit, onChan
   if (txs.length === 0)
     return (
       <div className="px-5 pt-8 text-center">
-        <p className="text-5xl">🧾</p>
+        <p className="flex justify-center text-navy/50"><LucideIcon name="receiptText" className="h-12 w-12" strokeWidth={1.5} /></p>
         <p className="mt-2 font-semibold text-navy">Belum ada transaksi</p>
         <p className="text-sm text-charcoal/60">Tekan tombol + untuk mencatat yang pertama.</p>
       </div>
@@ -118,12 +106,15 @@ export default function Transactions({ txs, accounts, categories, onEdit, onChan
     <>
       {searchable && (
         <div className="px-5 pt-4">
-          <input
-            className="w-full rounded-2xl border border-charcoal/15 bg-white px-4 py-3 outline-none focus:border-emerald focus:ring-2 focus:ring-emerald/30"
-            placeholder="🔍  Cari kategori, catatan, atau rekening"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
+          <div className="relative">
+            <LucideIcon name="search" className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-charcoal/50" />
+            <input
+              className="w-full rounded-2xl border border-charcoal/15 bg-white py-3 pl-11 pr-4 outline-none focus:border-emerald focus:ring-2 focus:ring-emerald/30"
+              placeholder="Cari kategori, catatan, atau rekening"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+          </div>
           <div className="mt-2 flex gap-2 text-sm">
             {([["all", "Semua"], ["income", "Masuk"], ["expense", "Keluar"]] as const).map(([k, l]) => (
               <button key={k} onClick={() => setF(k)} className={`rounded-full px-4 py-1.5 font-medium ${f === k ? "bg-navy text-white" : "bg-charcoal/10"}`}>{l}</button>
@@ -138,7 +129,9 @@ export default function Transactions({ txs, accounts, categories, onEdit, onChan
           const editable = t.type === "income" || t.type === "expense";
           const isTransfer = t.type === "transfer";
           const label = NAMES[t.type] ?? cat(t.category_id);
-          const icon = editable ? catIcon(cat(t.category_id)) : isTransfer ? "🔁" : t.type.startsWith("saving") ? "🐖" : "🤝";
+          const icon = editable
+            ? <CatIcon name={cat(t.category_id)} className="h-5 w-5" />
+            : <LucideIcon name={isTransfer ? "arrowLeftRight" : t.type.startsWith("saving") ? "piggyBank" : "handshake"} className="h-5 w-5" />;
           const dk = dayKey(t.occurred_at);
           const head = searchable && dk !== last;
           last = dk;
@@ -147,7 +140,7 @@ export default function Transactions({ txs, accounts, categories, onEdit, onChan
               {head && <li className="pt-2 text-xs font-semibold uppercase tracking-wide text-charcoal/50">{dayLabel(t.occurred_at)}</li>}
               <li className="rise rounded-2xl bg-white px-3 py-3 shadow-sm">
                 <div className="flex items-center gap-3">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-xl" style={{ background: plus ? "rgba(15,157,107,.14)" : "rgba(201,169,97,.22)" }}>{icon}</span>
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-navy" style={{ background: plus ? "rgba(15,157,107,.14)" : "rgba(201,169,97,.22)" }}>{icon}</span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">{label}</p>
                     <p className="truncate text-xs text-charcoal/60">
@@ -157,10 +150,15 @@ export default function Transactions({ txs, accounts, categories, onEdit, onChan
                   </div>
                   <span className={`shrink-0 font-bold ${plus ? "text-emerald" : ""}`}>{isTransfer ? "" : plus ? "+" : "-"}{rupiah(t.amount)}</span>
                 </div>
-                <div className="ml-14 mt-1 flex gap-4 text-xs">
-                  {editable && <button onClick={() => onEdit(t)} className="text-navy underline">Ubah</button>}
-                  {withReceipt.has(t.id) && <button onClick={() => openReceipt(t.id)} className="text-navy underline">📎 Struk</button>}
-                  <button onClick={() => remove(t)} className="text-red-700 underline">Hapus</button>
+                <div className="ml-14 mt-1 flex gap-2">
+                  {editable && (
+                    <button onClick={() => onEdit(t)} aria-label="Ubah transaksi" title="Ubah" className="flex h-8 w-8 items-center justify-center rounded-xl bg-navy/10 text-navy active:bg-navy/20">
+                      <LucideIcon name="pencil" className="h-4 w-4" />
+                    </button>
+                  )}
+                  <button onClick={() => remove(t)} aria-label="Hapus transaksi" title="Hapus" className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-600/10 text-red-700 active:bg-red-600/20">
+                    <LucideIcon name="trash" className="h-4 w-4" />
+                  </button>
                 </div>
               </li>
             </Fragment>
@@ -178,7 +176,6 @@ export default function Transactions({ txs, accounts, categories, onEdit, onChan
           ) : null}
         </div>
       )}
-      {viewing && <ReceiptViewer src={viewing.src} onClose={() => setViewing(null)} />}
     </>
   );
 }
