@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
+import { ENABLE_DEMO } from "../lib/config";
+import { enterDemo } from "../lib/demo";
 
 export default function Login() {
   const [mode, setMode] = useState<"masuk" | "daftar">("masuk");
@@ -76,6 +78,12 @@ export default function Login() {
         >
           {mode === "masuk" ? "Belum punya akun? Daftar" : "Sudah punya akun? Masuk"}
         </button>
+
+        {ENABLE_DEMO && (
+          <button onClick={enterDemo} className="mt-3 w-full rounded-xl border border-gold/60 bg-gold/10 py-2.5 text-sm font-semibold text-navy">
+            ✨ Coba demo tanpa daftar
+          </button>
+        )}
       </div>
     </main>
   );

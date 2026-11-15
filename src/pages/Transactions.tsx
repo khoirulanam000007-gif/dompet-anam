@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { confirmBox, toast } from "../lib/ui";
 import { rupiah } from "../lib/format";
@@ -20,6 +20,9 @@ const NAMES: Record<string, string> = {
 };
 const PLUS = ["income", "saving_withdraw", "debt_borrow", "loan_receive"];
 
+const PAGE = 200;
+const COLS = "id,type,amount,account_id,to_account_id,category_id,occurred_at,source,note";
+
 const dayKey = (iso: string) => { const d = new Date(iso); return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; };
 function dayLabel(iso: string) {
   const d = new Date(iso), n = new Date();
@@ -32,6 +35,47 @@ function dayLabel(iso: string) {
 export default function Transactions({ txs, accounts, categories, onEdit, onChanged, searchable }: Props) {
   const [q, setQ] = useState("");
   const [f, setF] = useState<"all" | "income" | "expense">("all");
+  const [older, setOlder] = useState<Tx[]>([]);
+  const [end, setEnd] = useState(txs.length < PAGE);
+  const [busy, setBusy] = useState(false);
+  const sentinel = useRef<HTMLDivElement>(null);
+  const searching = !!searchable && (!!q.trim() || f !== "all");
+  // Data baru dari induk (mis. setelah simpan/hapus) = mulai lagi dari halaman pertama.
+  useEffect(() => { setOlder([]); setEnd(txs.length < PAGE); }, [txs]);
+  const all = older.length ? [...txs, ...older] : txs;
+
+  // Memuat transaksi yang lebih lama bertahap (200 per kali). everything=true: muat semuanya (untuk pencarian).
+  async function loadMore(everything = false) {
+    if (busy || end) return;
+    setBusy(true);
+    let acc = older;
+    let cursor = (acc.length ? acc[acc.length - 1] : txs[txs.length - 1])?.occurred_at;
+    let done = false;
+    for (let i = 0; i < (everything ? 30 : 1) && cursor && !done; i++) {
+      const { data, error } = await supabase.from("transactions").select(COLS).lte("occurred_at", cursor).order("occurred_at", { ascending: false }).limit(PAGE);
+      if (error) { toast("Riwayat lama belum bisa dimuat. Periksa internet Anda.", "error"); break; }
+      const seen = new Set([...txs, ...acc].map((x) => x.id));
+      const fresh = (data ?? []).filter((x) => !seen.has(x.id)).map((x) => ({ ...x, amount: Number(x.amount) })) as Tx[];
+      acc = [...acc, ...fresh];
+      if ((data ?? []).length < PAGE || fresh.length === 0) done = true;
+      cursor = acc.length ? acc[acc.length - 1].occurred_at : cursor;
+    }
+    setOlder(acc);
+    if (done) setEnd(true);
+    setBusy(false);
+  }
+
+  // Mencari/memfilter = cari di seluruh riwayat, jadi muat semuanya dulu.
+  useEffect(() => { if (searching && !end && !busy) loadMore(true); }, [searching, end]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Gulir sampai bawah = muat otomatis halaman berikutnya.
+  useEffect(() => {
+    const el = sentinel.current;
+    if (!el || end || searching || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver((e) => { if (e[0].isIntersecting && !busy) loadMore(); }, { rootMargin: "240px" });
+    io.observe(el);
+    return () => io.disconnect();
+  });
+
   const acc = (id: string | null) => accounts.find((a) => a.id === id)?.name ?? "-";
   const cat = (id: string | null) => categories.find((c) => c.id === id)?.name ?? "Tanpa kategori";
 
@@ -43,7 +87,7 @@ export default function Transactions({ txs, accounts, categories, onEdit, onChan
   }
 
   const needle = q.trim().toLowerCase();
-  const shown = !searchable ? txs : txs.filter((t) =>
+  const shown = !searchable ? txs : all.filter((t) =>
     (f === "all" || t.type === f) &&
     (!needle || [cat(t.category_id), acc(t.account_id), t.note ?? "", t.source ?? ""].join(" ").toLowerCase().includes(needle))
   );
@@ -110,6 +154,17 @@ export default function Transactions({ txs, accounts, categories, onEdit, onChan
           );
         })}
       </ul>
+      {searchable && (
+        <div ref={sentinel} className="px-5 pb-6 pt-4 text-center text-sm">
+          {!end ? (
+            <button onClick={() => loadMore()} disabled={busy} className="rounded-full border border-charcoal/15 bg-white px-5 py-2 font-medium disabled:opacity-60">
+              {busy ? (searching ? "Mencari di seluruh riwayat…" : "Memuat…") : "Muat transaksi lebih lama"}
+            </button>
+          ) : all.length > PAGE ? (
+            <p className="text-charcoal/50">Semua {all.length} transaksi sudah dimuat.</p>
+          ) : null}
+        </div>
+      )}
     </>
   );
 }

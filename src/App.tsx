@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./lib/supabase";
 import { rupiah } from "./lib/format";
@@ -11,13 +11,16 @@ import { getMode } from "./lib/lock";
 import Transactions from "./pages/Transactions";
 import TransactionForm from "./components/TransactionForm";
 import TransferForm from "./components/TransferForm";
-import More from "./pages/More";
-import Analysis from "./pages/Analysis";
+const Analysis = lazy(() => import("./pages/Analysis"));
+const More = lazy(() => import("./pages/More"));
+const Plans = lazy(() => import("./pages/Plans"));
 import Home from "./pages/Home";
 import PageHeader from "./components/PageHeader";
-import Plans from "./pages/Plans";
 import HomeSkeleton from "./components/Skeleton";
 import { toast } from "./lib/ui";
+import StatusPills from "./components/StatusPills";
+import InstallPrompt from "./components/InstallPrompt";
+import { clearOfflineCache } from "./lib/offline";
 
 const HEAD: Record<string, [string, string, string, [string, string]]> = {
   transaksi: ["Transaksi", "Semua catatan uang masuk dan keluar", "🧾", ["#0b1f3a", "#14527a"]],
@@ -70,6 +73,12 @@ function Main({ session }: { session: Session }) {
     processRecurring().then((n) => { if (n > 0) load(); });
   }, [load]);
 
+  useEffect(() => {
+    if (!loaded) return;
+    const t = window.setTimeout(() => { import("./pages/Analysis"); import("./pages/Plans"); import("./pages/More"); }, 1500);
+    return () => window.clearTimeout(t);
+  }, [loaded]);
+
   const total = accounts.reduce((s, a) => s + a.balance, 0);
   const sum = (type: string) => monthTx.filter((x) => x.type === type).reduce((s, x) => s + x.amount, 0);
   const income = sum("income");
@@ -77,6 +86,8 @@ function Main({ session }: { session: Session }) {
 
   return (
     <div className="mx-auto min-h-screen max-w-xl pb-[calc(7rem+env(safe-area-inset-bottom))]">
+      <StatusPills />
+      <InstallPrompt />
       {error && <p className="px-5 pt-3 text-sm text-red-700">{error}</p>}
 
       {tab !== "beranda" && <PageHeader title={HEAD[tab][0]} sub={HEAD[tab][1]} icon={HEAD[tab][2]} colors={HEAD[tab][3]}>
@@ -102,11 +113,11 @@ function Main({ session }: { session: Session }) {
           onChanged={load}
         />
       ) : tab === "analisis" ? (
-        <Analysis categories={categories} total={total} />
+        <Suspense fallback={<HomeSkeleton />}><Analysis categories={categories} total={total} /></Suspense>
       ) : tab === "lainnya" ? (
-        <More accounts={accounts} categories={categories} onChanged={load} onTransfer={() => setTransfer(true)} />
+        <Suspense fallback={<HomeSkeleton />}><More accounts={accounts} categories={categories} onChanged={load} onTransfer={() => setTransfer(true)} /></Suspense>
       ) : tab === "rencana" ? (
-        <Plans accounts={accounts} categories={categories} onChanged={load} />
+        <Suspense fallback={<HomeSkeleton />}><Plans accounts={accounts} categories={categories} onChanged={load} /></Suspense>
       ) : (
         <>
           <Transactions
@@ -185,6 +196,7 @@ export default function App() {
     });
     const { data: sub } = supabase.auth.onAuthStateChange((e, s) => {
       if (e === "PASSWORD_RECOVERY") setRecovery(true);
+      if (e === "SIGNED_OUT") clearOfflineCache();
       setSession(s);
     });
     return () => sub.subscription.unsubscribe();

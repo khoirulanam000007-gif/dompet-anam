@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App";
 import { UiHost } from "./lib/ui";
+import "./lib/install";
 
 if (localStorage.getItem("theme") === "dark") document.documentElement.classList.add("dark");
 
