@@ -6,6 +6,7 @@ import type { Account, Category, Tx } from "./lib/types";
 import Login from "./pages/Login";
 import { NewPassword, LockScreen } from "./pages/Settings";
 import { processRecurring } from "./lib/recurring";
+import { loadProfile } from "./lib/profile";
 import Transactions from "./pages/Transactions";
 import TransactionForm from "./components/TransactionForm";
 import TransferForm from "./components/TransferForm";
@@ -64,6 +65,7 @@ function Main({ session }: { session: Session }) {
 
   useEffect(() => {
     load();
+    loadProfile();
     processRecurring().then((n) => { if (n > 0) load(); });
   }, [load]);
 

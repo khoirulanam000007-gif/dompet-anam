@@ -4,7 +4,8 @@ import { rupiah } from "../lib/format";
 import { catIcon } from "../lib/icons";
 import { useCountUp } from "../lib/anim";
 import type { Account, Category, Tx } from "../lib/types";
-import Transactions from "./Transactions";
+import Avatar from "../components/Avatar";
+import { useProfile } from "../lib/profile";
 
 type Period = "hari" | "minggu" | "bulan" | "tahun" | "tanggal";
 const PERIODS: [Period, string][] = [["hari", "Hari ini"], ["minggu", "Minggu ini"], ["bulan", "Bulan ini"], ["tahun", "Tahun ini"], ["tanggal", "Pilih tanggal"]];
@@ -35,7 +36,8 @@ export default function Home({ accounts, categories, txs, total, onAdd, onTransf
   const [from, setFrom] = useState(today);
   const [to, setTo] = useState(today);
   const [hide, setHide] = useState(localStorage.getItem("hide") === "1");
-  const [name, setName] = useState("");
+  const profile = useProfile();
+  const name = profile.name.split(" ")[0];
   const [tot, setTot] = useState({ inc: 0, exp: 0 });
   const [week, setWeek] = useState<{ d: string; inc: number; exp: number }[]>([]);
   const [bud, setBud] = useState({ limit: 0, used: 0, risk: 0, count: 0 });
@@ -48,11 +50,6 @@ export default function Home({ accounts, categories, txs, total, onAdd, onTransf
   const [prev, setPrev] = useState(0);
   const animTotal = useCountUp(total);
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) supabase.from("profiles").select("full_name").eq("id", data.user.id).single().then((r) => setName((r.data?.full_name ?? "").split(" ")[0]));
-    });
-  }, []);
 
   useEffect(() => {
     const [s, e] = rangeOf(period, from, to);
@@ -141,7 +138,13 @@ export default function Home({ accounts, categories, txs, total, onAdd, onTransf
   return (
     <div>
       <section className="hero px-5 pb-6 pt-4 text-white">
-        <p className="rise text-sm text-white/80">{greet}{name ? `, ${name}` : ""} 👋</p>
+        <div className="rise flex items-center gap-3">
+          <Avatar src={profile.avatar} size={46} />
+          <div className="min-w-0">
+            <p className="text-xs text-white/70">{greet} 👋</p>
+            <p className="truncate text-base font-bold">{name || "Selamat datang"}</p>
+          </div>
+        </div>
         <div className="rise mt-3 flex items-center justify-between" style={{ animationDelay: "60ms" }}>
           <p className="text-sm text-white/70">Total saldo</p>
           <button onClick={() => { const v = !hide; setHide(v); localStorage.setItem("hide", v ? "1" : "0"); }} className="text-xs text-white/80 underline">{hide ? "Tampilkan" : "Sembunyikan"}</button>
@@ -177,7 +180,7 @@ export default function Home({ accounts, categories, txs, total, onAdd, onTransf
         <div className="flex gap-1 text-[10px] text-white/60">{week.map((x, i) => <span key={i} className="flex-1 text-center">{x.d}</span>)}</div>
       </section>
 
-      <section className="px-5 pt-4">
+      <section className="px-5 pb-8 pt-4">
         {dues.length > 0 && (
           <div className="rise mb-3 rounded-2xl border border-red-700/40 bg-white px-4 py-3 text-sm shadow-sm">
             <p className="font-semibold text-red-700">Pengingat jatuh tempo</p>
@@ -298,9 +301,7 @@ export default function Home({ accounts, categories, txs, total, onAdd, onTransf
             </li>
           ))}
         </ul>
-        <h2 className="mt-6 text-lg font-semibold text-navy">Transaksi terbaru</h2>
       </section>
-      <Transactions txs={txs.slice(0, 5)} accounts={accounts} categories={categories} onEdit={onEdit} onChanged={onChanged} />
     </div>
   );
 }

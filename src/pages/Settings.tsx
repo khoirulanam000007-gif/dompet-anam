@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { confirmBox, toast } from "../lib/ui";
 import { restoreBackup } from "../lib/restore";
 import type { Category } from "../lib/types";
+import Avatar from "../components/Avatar";
+import AvatarEditor from "../components/AvatarEditor";
+import { useProfile, saveAvatar, setProfileName } from "../lib/profile";
 
 const field = "w-full rounded-xl border border-charcoal/15 bg-white px-4 py-3 outline-none focus:border-emerald focus:ring-2 focus:ring-emerald/30";
 const sha = async (s: string) =>
@@ -63,6 +66,11 @@ export function NewPassword({ onDone }: { onDone: () => void }) {
 export default function Settings({ categories, onChanged }: { categories: Category[]; onChanged: () => void }) {
   const [dark, setDark] = useState(document.documentElement.classList.contains("dark"));
   const [name, setName] = useState("");
+  const profile = useProfile();
+  const [email, setEmail] = useState("");
+  const [editFile, setEditFile] = useState<File | null>(null);
+  const galRef = useRef<HTMLInputElement>(null);
+  const camRef = useRef<HTMLInputElement>(null);
   const [pw, setPw] = useState("");
   const [cName, setCName] = useState("");
   const [cKind, setCKind] = useState<"expense" | "income">("expense");
@@ -107,7 +115,10 @@ export default function Settings({ categories, onChanged }: { categories: Catego
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) supabase.from("profiles").select("full_name").eq("id", data.user.id).single().then((r) => setName(r.data?.full_name ?? ""));
+      if (data.user) {
+        setEmail(data.user.email ?? "");
+        supabase.from("profiles").select("full_name").eq("id", data.user.id).single().then((r) => setName(r.data?.full_name ?? ""));
+      }
     });
   }, []);
 
@@ -122,6 +133,7 @@ export default function Settings({ categories, onChanged }: { categories: Catego
     if (!data.user) return;
     const { error } = await supabase.from("profiles").update({ full_name: name.trim() }).eq("id", data.user.id);
     setMsg(error ? "Gagal menyimpan nama." : "Nama tersimpan.");
+    if (!error) setProfileName(name.trim());
   }
   async function savePw() {
     if (pw.length < 6) return setMsg("Kata sandi minimal 6 karakter.");
@@ -142,9 +154,29 @@ export default function Settings({ categories, onChanged }: { categories: Catego
     else onChanged();
   }
 
+  function pick(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(f.type)) return toast("Format foto harus JPG, JPEG, PNG, atau WebP.", "error");
+    if (f.size > 8 * 1024 * 1024) return toast("Ukuran foto maksimal 8 MB.", "error");
+    setEditFile(f);
+  }
+  async function removeAvatar() {
+    if (!(await confirmBox("Hapus foto profil dan kembali ke avatar bawaan?", { okLabel: "Hapus" }))) return;
+    if (await saveAvatar(null)) toast("Foto profil dihapus", "ok");
+  }
+
   const card = "mt-4 rounded-2xl bg-white p-4 shadow-sm";
   return (
     <section className="px-5 pb-6 pt-2">
+      {editFile && (
+        <AvatarEditor
+          file={editFile}
+          onCancel={() => setEditFile(null)}
+          onSave={async (d) => { if (await saveAvatar(d)) { toast("Foto profil tersimpan", "ok"); setEditFile(null); } }}
+        />
+      )}
       <div className={card}>
         <div className="flex items-center justify-between">
           <span className="font-semibold">🌙 Tema gelap</span>
@@ -156,7 +188,20 @@ export default function Settings({ categories, onChanged }: { categories: Catego
       </div>
 
       <div className={card}>
-        <p className="font-semibold">👤 Profil</p>
+        <div className="flex items-center gap-4">
+          <Avatar src={profile.avatar} size={84} />
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold">👤 Profil</p>
+            <p className="truncate text-sm text-charcoal/60">{email}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+              <button onClick={() => galRef.current?.click()} className="rounded-full bg-navy px-3 py-1.5 text-white">{profile.avatar ? "Ganti foto" : "Pilih foto"}</button>
+              <button onClick={() => camRef.current?.click()} className="rounded-full bg-charcoal/10 px-3 py-1.5">📷 Kamera</button>
+              {profile.avatar && <button onClick={removeAvatar} className="px-2 py-1.5 text-red-700 underline">Hapus</button>}
+            </div>
+          </div>
+        </div>
+        <input ref={galRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={pick} />
+        <input ref={camRef} type="file" accept="image/jpeg,image/png,image/webp" capture="user" className="hidden" onChange={pick} />
         <input className={`${field} mt-2`} placeholder="Nama" value={name} onChange={(e) => setName(e.target.value)} />
         <button onClick={saveName} className={`${btn} mt-2`}>Simpan nama</button>
         <input className={`${field} mt-4`} type="password" placeholder="Kata sandi baru" value={pw} onChange={(e) => setPw(e.target.value)} />
