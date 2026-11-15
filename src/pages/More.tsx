@@ -16,7 +16,7 @@ export default function More({ accounts, categories, onChanged, onTransfer }: Pr
           <button key={k} onClick={() => setV(k)} className={`rounded-lg py-2 text-xs font-medium capitalize ${v === k ? "bg-navy text-white" : ""}`}>{k}</button>
         ))}
       </div>
-      {v === "rekening" ? <Accounts accounts={accounts} onChanged={onChanged} onTransfer={onTransfer} /> : v === "kalender" ? <Calendar accounts={accounts} categories={categories} /> : v === "laporan" ? <Reports accounts={accounts} categories={categories} /> : <Settings categories={categories} onChanged={onChanged} />}
+      {v === "rekening" ? <Accounts accounts={accounts} onChanged={onChanged} onTransfer={onTransfer} /> : v === "kalender" ? <Calendar accounts={accounts} categories={categories} /> : v === "laporan" ? <Reports accounts={accounts} categories={categories} onChanged={onChanged} /> : <Settings categories={categories} onChanged={onChanged} />}
     </div>
   );
 }

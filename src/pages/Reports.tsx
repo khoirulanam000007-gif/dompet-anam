@@ -2,14 +2,23 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { rupiah } from "../lib/format";
 import type { Account, Category } from "../lib/types";
+import { useProfile } from "../lib/profile";
+import { toast } from "../lib/ui";
+import { buildReportPdf, type ReportRow } from "../lib/reportPdf";
+import ImportWizard from "../components/ImportWizard";
 
-type Row = { id: string; type: string; amount: number; account_id: string; category_id: string | null; occurred_at: string; note: string | null };
+type Row = { id: string; type: string; amount: number; account_id: string; to_account_id: string | null; category_id: string | null; occurred_at: string; note: string | null };
 const LABEL: Record<string, string> = {
   income: "Pemasukan", expense: "Pengeluaran", transfer: "Transfer", saving_deposit: "Setoran tabungan", saving_withdraw: "Penarikan tabungan",
   debt_borrow: "Pinjaman diterima", loan_give: "Pinjaman diberikan", debt_repay: "Pembayaran utang", loan_receive: "Penerimaan piutang",
 };
 
-export default function Reports({ accounts, categories }: { accounts: Account[]; categories: Category[] }) {
+const PLUS = ["income", "debt_borrow", "loan_receive", "saving_withdraw"];
+
+export default function Reports({ accounts, categories, onChanged }: { accounts: Account[]; categories: Category[]; onChanged: () => void }) {
+  const profile = useProfile();
+  const [importing, setImporting] = useState(false);
+  const [pdfBusy, setPdfBusy] = useState(false);
   const [mode, setMode] = useState<"bulan" | "tahun">("bulan");
   const [off, setOff] = useState(0);
   const [rows, setRows] = useState<Row[]>([]);
@@ -19,7 +28,7 @@ export default function Reports({ accounts, categories }: { accounts: Account[];
   const title = mode === "bulan" ? start.toLocaleDateString("id-ID", { month: "long", year: "numeric" }) : String(start.getFullYear());
 
   useEffect(() => {
-    supabase.from("transactions").select("id,type,amount,account_id,category_id,occurred_at,note")
+    supabase.from("transactions").select("id,type,amount,account_id,to_account_id,category_id,occurred_at,note")
       .gte("occurred_at", start.toISOString()).lt("occurred_at", end.toISOString()).order("occurred_at")
       .then(({ data }) => setRows((data ?? []).map((x) => ({ ...x, amount: Number(x.amount) })) as Row[]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -51,6 +60,54 @@ export default function Reports({ accounts, categories }: { accounts: Account[];
     URL.revokeObjectURL(a.href);
   }
 
+  function downloadPdf() {
+    setPdfBusy(true);
+    try {
+      const now = new Date();
+      const last = new Date(Math.min(end.getTime(), now.getTime() + 86400000));
+      const days = Math.max(1, Math.round((last.getTime() - start.getTime()) / 86400000));
+      const list: ReportRow[] = rows.map((r) => {
+        const tr = r.type === "transfer";
+        const plus = PLUS.includes(r.type);
+        return {
+          date: new Date(r.occurred_at),
+          kind: LABEL[r.type] ?? r.type,
+          category: r.type === "income" || r.type === "expense" ? cat(r.category_id) : tr ? "Antar rekening" : "-",
+          account: tr ? `${acc(r.account_id)} > ${acc(r.to_account_id ?? "")}` : acc(r.account_id),
+          note: r.note ?? "",
+          amount: r.amount,
+          sign: tr ? 0 : plus ? 1 : -1,
+          tone: r.type === "income" ? "in" : r.type === "expense" ? "out" : "other",
+        };
+      });
+      const byAccount = accounts.map((a) => ({
+        name: a.name,
+        income: rows.filter((r) => r.type === "income" && r.account_id === a.id).reduce((s, r) => s + r.amount, 0),
+        expense: rows.filter((r) => r.type === "expense" && r.account_id === a.id).reduce((s, r) => s + r.amount, 0),
+      }));
+      const bytes = buildReportPdf({
+        periodLabel: title.charAt(0).toUpperCase() + title.slice(1),
+        userName: profile.name,
+        rows: list, income: inc, expense: exp,
+        totalBalance: accounts.reduce((s, a) => s + a.balance, 0),
+        expenseByCat: group("expense", (r) => cat(r.category_id)),
+        incomeByCat: group("income", (r) => cat(r.category_id)),
+        byAccount, days,
+      });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }));
+      a.download = `laporan-dompet-anam-${title.replace(/\s/g, "-")}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      toast("Laporan PDF diunduh", "ok");
+    } catch {
+      toast("Gagal membuat PDF. Coba lagi.", "error");
+    }
+    setPdfBusy(false);
+  }
+
   const Block = ({ name, items }: { name: string; items: [string, number][] }) => (
     <div className="mt-4 rounded-2xl bg-white p-4 shadow-sm">
       <p className="font-medium">{name}</p>
@@ -80,8 +137,17 @@ export default function Reports({ accounts, categories }: { accounts: Account[];
       </div>
 
       <div className="no-print mt-3 grid grid-cols-2 gap-2">
-        <button onClick={downloadCsv} className="rounded-xl bg-emerald py-2.5 font-medium text-white">Unduh Excel (CSV)</button>
-        <button onClick={() => window.print()} className="rounded-xl bg-navy py-2.5 font-medium text-white">Cetak / Simpan PDF</button>
+        <button onClick={downloadPdf} disabled={pdfBusy} className="rounded-xl bg-navy py-2.5 font-medium text-white disabled:opacity-60">{pdfBusy ? "Membuat PDF..." : "📄 Unduh PDF"}</button>
+        <button onClick={downloadCsv} className="rounded-xl bg-emerald py-2.5 font-medium text-white">📊 Unduh Excel (CSV)</button>
+      </div>
+
+      <div className="no-print mt-3 flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gold/25 text-lg">📥</span>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold">Impor transaksi</p>
+          <p className="text-xs text-charcoal/60">Dari file CSV atau Excel (.xlsx), lengkap dengan template.</p>
+        </div>
+        <button onClick={() => setImporting(true)} className="shrink-0 rounded-full bg-navy px-4 py-2 text-sm font-medium text-white">Impor</button>
       </div>
 
       <Block name="Pengeluaran per kategori" items={group("expense", (r) => cat(r.category_id))} />
@@ -98,7 +164,8 @@ export default function Reports({ accounts, categories }: { accounts: Account[];
           </div>
         ))}
       </div>
-      <p className="no-print mt-3 pb-4 text-xs text-charcoal/60">Untuk PDF, pilih "Simpan sebagai PDF" di jendela cetak.</p>
+      <p className="no-print mt-3 pb-4 text-xs text-charcoal/60">PDF berisi ringkasan, grafik kategori, per rekening, dan seluruh rincian transaksi periode ini.</p>
+      {importing && <ImportWizard accounts={accounts} categories={categories} onClose={() => setImporting(false)} onDone={() => { setImporting(false); onChanged(); }} />}
     </section>
   );
 }

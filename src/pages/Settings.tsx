@@ -6,6 +6,7 @@ import { getMode, setMode, clearLock, bioSupported, registerBio, verifyBio, type
 import type { Category } from "../lib/types";
 import Avatar from "../components/Avatar";
 import AvatarEditor from "../components/AvatarEditor";
+import NotificationCard from "../components/NotificationCard";
 import PasswordCard, { PwField, StrengthBar } from "../components/PasswordCard";
 import { useProfile, saveAvatar, setProfileName } from "../lib/profile";
 
@@ -255,6 +256,8 @@ export default function Settings({ categories, onChanged }: { categories: Catego
         </div>
       </div>
 
+      <NotificationCard />
+
       <PasswordCard email={email} />
 
       <div className={card}>
@@ -340,7 +343,7 @@ export default function Settings({ categories, onChanged }: { categories: Catego
       <div className={`${card} text-center`}>
         <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border-2 border-gold text-xs font-bold text-navy">DA</div>
         <p className="mt-2 font-semibold">DOMPET ANAM</p>
-        <p className="text-xs text-charcoal/60">Versi Tahap 22 · Data Anda tersimpan di akun pribadi Anda</p>
+        <p className="text-xs text-charcoal/60">Versi Tahap 24 · Data Anda tersimpan di akun pribadi Anda</p>
       </div>
 
       {msg && <p className="mt-3 text-sm text-emerald">{msg}</p>}

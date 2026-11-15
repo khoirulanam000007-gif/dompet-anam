@@ -7,7 +7,7 @@ const DATA = "dompet-data-v1";
 export async function offlineFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const method = (init?.method ?? (input instanceof Request ? input.method : "GET")).toUpperCase();
   const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-  if (method !== "GET" || !/\/(rest|auth)\/v1\//.test(url)) return fetch(input, init);
+  if (method !== "GET" || !/\/(rest|auth)\/v1\//.test(url) || /transaction_receipts/.test(url)) return fetch(input, init);
   try {
     const res = await fetch(input, init);
     if (res.ok) caches.open(DATA).then((c) => c.put(url, res.clone())).catch(() => {});

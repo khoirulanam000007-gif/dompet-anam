@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import type { Account, Category, Tx } from "../lib/types";
 import { rupiahShort } from "../lib/format";
 import { catIcon } from "../lib/icons";
+import { toast } from "../lib/ui";
+import { deleteReceipt, getReceipt, saveReceipt } from "../lib/receipts";
+import ReceiptField from "./ReceiptField";
 
 type Props = {
   accounts: Account[];
@@ -30,6 +33,16 @@ export default function TransactionForm({ accounts, categories, editing, recent 
   const [note, setNote] = useState(editing?.note ?? "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  // Foto struk: undefined = sedang dimuat, null = tidak ada, teks = foto (data URL)
+  const [receipt, setReceipt] = useState<string | null | undefined>(editing ? undefined : null);
+  const [origReceipt, setOrigReceipt] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!editing) return;
+    let alive = true;
+    getReceipt(editing.id).then((r) => { if (alive) { setReceipt(r); setOrigReceipt(r); } }).catch(() => { if (alive) setReceipt(null); });
+    return () => { alive = false; };
+  }, [editing]);
 
   const cats = categories.filter((c) => c.kind === kind);
   const amount = Number(digits || 0);
@@ -69,12 +82,23 @@ export default function TransactionForm({ accounts, categories, editing, recent 
       source: kind === "income" ? source.trim() || null : null,
       note: note.trim() || null,
     };
-    const q = editing
-      ? supabase.from("transactions").update(row).eq("id", editing.id)
-      : supabase.from("transactions").insert(row);
-    const { error } = await q;
+    let txId = editing?.id ?? "";
+    let error: { message: string } | null;
+    if (editing) {
+      ({ error } = await supabase.from("transactions").update(row).eq("id", editing.id));
+    } else {
+      const r = await supabase.from("transactions").insert(row).select("id").single();
+      error = r.error;
+      txId = (r.data as { id?: string } | null)?.id ?? "";
+    }
+    if (error) { setBusy(false); return setErr("Gagal menyimpan. Periksa isian lalu coba lagi."); }
+
+    // Foto struk (hanya bila berubah). Kegagalan foto tidak membatalkan transaksi yang sudah tersimpan.
+    if (txId && receipt !== undefined && receipt !== origReceipt) {
+      const problem = receipt ? await saveReceipt(txId, receipt) : await deleteReceipt(txId);
+      if (problem) toast(problem, "error");
+    }
     setBusy(false);
-    if (error) return setErr("Gagal menyimpan. Periksa isian lalu coba lagi.");
     onSaved();
   }
 
@@ -145,6 +169,7 @@ export default function TransactionForm({ accounts, categories, editing, recent 
           )}
           <input className={field} type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} />
           <input className={field} placeholder="Catatan (opsional)" value={note} onChange={(e) => setNote(e.target.value)} />
+          <ReceiptField value={receipt} onChange={setReceipt} disabled={busy} />
         </div>
 
         {err && <p className="mt-3 text-sm text-red-700">{err}</p>}

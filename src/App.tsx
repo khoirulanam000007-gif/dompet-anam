@@ -6,7 +6,8 @@ import type { Account, Category, Tx } from "./lib/types";
 import Login from "./pages/Login";
 import { NewPassword, LockScreen } from "./pages/Settings";
 import { processRecurring } from "./lib/recurring";
-import { loadProfile } from "./lib/profile";
+import { loadProfile, markOnboarded, useProfile } from "./lib/profile";
+import Onboarding from "./components/Onboarding";
 import { getMode } from "./lib/lock";
 import Transactions from "./pages/Transactions";
 import TransactionForm from "./components/TransactionForm";
@@ -78,6 +79,13 @@ function Main({ session }: { session: Session }) {
     const t = window.setTimeout(() => { import("./pages/Analysis"); import("./pages/Plans"); import("./pages/More"); }, 1500);
     return () => window.clearTimeout(t);
   }, [loaded]);
+
+  // Panduan awal: hanya untuk akun yang benar-benar baru (belum ditandai, belum punya rekening/transaksi).
+  const profile = useProfile();
+  const fresh = loaded && !error && profile.loaded && !profile.onboarded;
+  const needOnboarding = fresh && accounts.length === 0 && txs.length === 0;
+  useEffect(() => { if (fresh && !needOnboarding) markOnboarded(); }, [fresh, needOnboarding]);
+  if (needOnboarding) return <Onboarding initialName={profile.name} onFinish={() => { load(); }} />;
 
   const total = accounts.reduce((s, a) => s + a.balance, 0);
   const sum = (type: string) => monthTx.filter((x) => x.type === type).reduce((s, x) => s + x.amount, 0);

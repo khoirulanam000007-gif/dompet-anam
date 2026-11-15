@@ -4,6 +4,8 @@ import { confirmBox, toast } from "../lib/ui";
 import { rupiah } from "../lib/format";
 import { catIcon } from "../lib/icons";
 import type { Account, Category, Tx } from "../lib/types";
+import { getReceipt, receiptIds } from "../lib/receipts";
+import ReceiptViewer from "../components/ReceiptViewer";
 
 type Props = {
   txs: Tx[];
@@ -39,6 +41,16 @@ export default function Transactions({ txs, accounts, categories, onEdit, onChan
   const [end, setEnd] = useState(txs.length < PAGE);
   const [busy, setBusy] = useState(false);
   const sentinel = useRef<HTMLDivElement>(null);
+  // Transaksi yang punya foto struk (hanya id-nya, bukan fotonya)
+  const [withReceipt, setWithReceipt] = useState<Set<string>>(new Set());
+  const [viewing, setViewing] = useState<{ src: string | null } | null>(null);
+  useEffect(() => { let alive = true; receiptIds().then((s) => { if (alive) setWithReceipt(s); }); return () => { alive = false; }; }, [txs]);
+  async function openReceipt(id: string) {
+    setViewing({ src: null });
+    const src = await getReceipt(id);
+    if (!src) { setViewing(null); return toast("Foto struk tidak ditemukan.", "error"); }
+    setViewing({ src });
+  }
   const searching = !!searchable && (!!q.trim() || f !== "all");
   // Data baru dari induk (mis. setelah simpan/hapus) = mulai lagi dari halaman pertama.
   useEffect(() => { setOlder([]); setEnd(txs.length < PAGE); }, [txs]);
@@ -147,6 +159,7 @@ export default function Transactions({ txs, accounts, categories, onEdit, onChan
                 </div>
                 <div className="ml-14 mt-1 flex gap-4 text-xs">
                   {editable && <button onClick={() => onEdit(t)} className="text-navy underline">Ubah</button>}
+                  {withReceipt.has(t.id) && <button onClick={() => openReceipt(t.id)} className="text-navy underline">📎 Struk</button>}
                   <button onClick={() => remove(t)} className="text-red-700 underline">Hapus</button>
                 </div>
               </li>
@@ -165,6 +178,7 @@ export default function Transactions({ txs, accounts, categories, onEdit, onChan
           ) : null}
         </div>
       )}
+      {viewing && <ReceiptViewer src={viewing.src} onClose={() => setViewing(null)} />}
     </>
   );
 }
