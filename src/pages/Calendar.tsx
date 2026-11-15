@@ -51,7 +51,7 @@ export default function Calendar({ accounts, categories }: { accounts: Account[]
           const k = key(new Date(month.getFullYear(), month.getMonth(), d));
           const list = byDay[k] ?? [];
           return (
-            <button key={i} onClick={() => setSel(k)} className={`flex h-12 flex-col items-center justify-center rounded-xl text-sm ${sel === k ? "bg-navy text-white" : "bg-white shadow-sm"}`}>
+            <button key={i} onClick={() => setSel(k)} className={`flex h-12 flex-col items-center justify-center rounded-xl text-sm ${sel === k ? "bg-navy text-white" : "bg-white shadow-sm"} ${k === key(new Date()) ? "ring-2 ring-emerald" : ""}`}>
               {d}
               <span className="mt-0.5 flex gap-0.5">
                 {tot(list, "income") > 0 && <i className="h-1.5 w-1.5 rounded-full bg-emerald" />}

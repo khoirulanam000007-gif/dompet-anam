@@ -16,12 +16,12 @@ const onlyDigits = (v: string) => v.replace(/\D/g, "").slice(0, 12);
 const money = (d: string) => (d ? Number(d).toLocaleString("id-ID") : "");
 const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
 
-function Ring({ pct }: { pct: number }) {
+function Ring({ pct, color = "#0f9d6b" }: { pct: number; color?: string }) {
   const p = Math.max(0, Math.min(100, pct)), C = 125.66;
   return (
     <svg viewBox="0 0 48 48" className="h-12 w-12 shrink-0" role="img" aria-label={`${p} persen`}>
       <circle cx="24" cy="24" r="20" fill="none" strokeWidth="5" stroke="currentColor" className="text-charcoal/10" />
-      <circle cx="24" cy="24" r="20" fill="none" strokeWidth="5" strokeLinecap="round" stroke="#0f9d6b" className="ring-arc" strokeDasharray={C} strokeDashoffset={C * (1 - p / 100)} transform="rotate(-90 24 24)" />
+      <circle cx="24" cy="24" r="20" fill="none" strokeWidth="5" strokeLinecap="round" stroke={color} className="ring-arc" strokeDasharray={C} strokeDashoffset={C * (1 - p / 100)} transform="rotate(-90 24 24)" />
       <text x="24" y="27.5" textAnchor="middle" fontSize="11" fontWeight="700" fill="currentColor">{p}%</text>
     </svg>
   );
@@ -135,8 +135,13 @@ function Budgets({ categories }: { categories: Category[] }) {
           const over = pct >= 100, warn = pct >= 80;
           return (
             <li key={b.id} className="rounded-2xl bg-white px-4 py-3 shadow-sm">
-              <div className="flex justify-between"><span className="font-medium">{catIcon(catName(b.category_id))} {catName(b.category_id)}</span><span>{pct}%</span></div>
-              <Bar pct={pct} color={over ? "bg-red-600" : warn ? "bg-gold" : "bg-emerald"} />
+              <div className="flex items-center gap-3">
+                <Ring pct={pct} color={over ? "#dc2626" : warn ? "#c9a961" : "#0f9d6b"} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold">{catIcon(catName(b.category_id))} {catName(b.category_id)}</p>
+                  <p className="text-xs text-charcoal/60">Batas {rupiah(b.limit_amount)}</p>
+                </div>
+              </div>
               <p className="mt-2 text-sm">Terpakai {rupiah(used)} dari {rupiah(b.limit_amount)}</p>
               <p className={`text-sm ${over ? "text-red-700" : "text-charcoal/70"}`}>
                 {over ? `Melebihi ${rupiah(used - b.limit_amount)}` : `Sisa ${rupiah(b.limit_amount - used)}`}
