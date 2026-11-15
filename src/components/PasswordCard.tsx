@@ -14,7 +14,7 @@ function Eye({ off }: { off: boolean }) {
   );
 }
 
-function PwField({ label, value, onChange, autoComplete, invalid }: { label: string; value: string; onChange: (v: string) => void; autoComplete: string; invalid?: boolean }) {
+export function PwField({ label, value, onChange, autoComplete, invalid }: { label: string; value: string; onChange: (v: string) => void; autoComplete: string; invalid?: boolean }) {
   const [show, setShow] = useState(false);
   return (
     <label className="block">
@@ -41,7 +41,7 @@ function PwField({ label, value, onChange, autoComplete, invalid }: { label: str
 }
 
 // Kekuatan kata sandi: 0-4
-function strength(p: string) {
+export function strength(p: string) {
   let n = 0;
   if (p.length >= 8) n++;
   if (/[a-z]/.test(p) && /[A-Z]/.test(p)) n++;
@@ -49,13 +49,29 @@ function strength(p: string) {
   if (/[^A-Za-z0-9]/.test(p) || p.length >= 12) n++;
   return p.length < 6 ? 0 : Math.max(1, n);
 }
-const LEVEL = [
+export const LEVEL = [
   { t: "Terlalu pendek", c: "#b42318" },
   { t: "Lemah", c: "#d9480f" },
   { t: "Cukup", c: "#c9a961" },
   { t: "Kuat", c: "#0f9d6b" },
   { t: "Sangat kuat", c: "#0c8a5e" },
 ];
+
+export function StrengthBar({ pw }: { pw: string }) {
+  if (!pw) return null;
+  const st = strength(pw);
+  const lv = LEVEL[st];
+  return (
+    <div>
+      <div className="flex gap-1.5" aria-hidden>
+        {[1, 2, 3, 4].map((i) => (
+          <span key={i} className="h-1.5 flex-1 rounded-full transition-colors" style={{ background: i <= st ? lv.c : "rgba(43,47,54,.15)" }} />
+        ))}
+      </div>
+      <p className="mt-1 text-xs font-medium" style={{ color: lv.c }}>{lv.t}</p>
+    </div>
+  );
+}
 
 export default function PasswordCard({ email }: { email: string }) {
   const [open, setOpen] = useState(false);
@@ -65,8 +81,6 @@ export default function PasswordCard({ email }: { email: string }) {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const st = strength(pw);
-  const lv = LEVEL[st];
   const lenOk = pw.length >= 6;
   const matchOk = pw2.length > 0 && pw === pw2;
   const diffOk = pw.length > 0 && pw !== cur;
@@ -107,16 +121,7 @@ export default function PasswordCard({ email }: { email: string }) {
           <PwField label="Kata sandi saat ini" value={cur} onChange={(v) => { setCur(v); setErr(""); }} autoComplete="current-password" invalid={err.includes("saat ini")} />
           <PwField label="Kata sandi baru" value={pw} onChange={(v) => { setPw(v); setErr(""); }} autoComplete="new-password" />
 
-          {pw.length > 0 && (
-            <div>
-              <div className="flex gap-1.5" aria-hidden>
-                {[1, 2, 3, 4].map((i) => (
-                  <span key={i} className="h-1.5 flex-1 rounded-full transition-colors" style={{ background: i <= st ? lv.c : "rgba(43,47,54,.15)" }} />
-                ))}
-              </div>
-              <p className="mt-1 text-xs font-medium" style={{ color: lv.c }}>{lv.t}</p>
-            </div>
-          )}
+          <StrengthBar pw={pw} />
 
           <PwField label="Ulangi kata sandi baru" value={pw2} onChange={(v) => { setPw2(v); setErr(""); }} autoComplete="new-password" invalid={pw2.length > 0 && !matchOk} />
 

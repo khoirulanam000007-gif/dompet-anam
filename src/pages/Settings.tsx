@@ -6,7 +6,7 @@ import { getMode, setMode, clearLock, bioSupported, registerBio, verifyBio, type
 import type { Category } from "../lib/types";
 import Avatar from "../components/Avatar";
 import AvatarEditor from "../components/AvatarEditor";
-import PasswordCard from "../components/PasswordCard";
+import PasswordCard, { PwField, StrengthBar } from "../components/PasswordCard";
 import { useProfile, saveAvatar, setProfileName } from "../lib/profile";
 
 const field = "w-full rounded-xl border border-charcoal/15 bg-white px-4 py-3 outline-none focus:border-emerald focus:ring-2 focus:ring-emerald/30";
@@ -72,20 +72,29 @@ const btn = "rounded-xl bg-emerald px-4 py-2.5 font-medium text-white disabled:o
 
 export function NewPassword({ onDone }: { onDone: () => void }) {
   const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
   const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
   async function save() {
     if (pw.length < 6) return setMsg("Kata sandi minimal 6 karakter.");
+    if (pw !== pw2) return setMsg("Kedua kata sandi belum sama.");
+    setBusy(true);
     const { error } = await supabase.auth.updateUser({ password: pw });
+    setBusy(false);
     if (error) setMsg("Gagal mengubah kata sandi. Minta tautan baru.");
-    else onDone();
+    else { toast("Kata sandi baru tersimpan", "ok"); onDone(); }
   }
   return (
-    <main className="flex min-h-screen items-center justify-center bg-navy p-5">
-      <div className="w-full max-w-sm space-y-3 rounded-3xl bg-paper p-7">
-        <h1 className="text-xl font-semibold text-navy">Atur kata sandi baru</h1>
-        <input className={field} type="password" placeholder="Kata sandi baru" value={pw} onChange={(e) => setPw(e.target.value)} />
-        {msg && <p className="text-sm text-red-700">{msg}</p>}
-        <button onClick={save} className={`${btn} w-full`}>Simpan</button>
+    <main className="hero flex min-h-screen items-center justify-center p-5">
+      <div className="rise w-full max-w-sm space-y-3 rounded-3xl bg-paper p-7 shadow-xl">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border-2 border-gold text-2xl">🔑</div>
+        <h1 className="text-center text-xl font-bold text-navy">Atur kata sandi baru</h1>
+        <p className="text-center text-sm text-charcoal/70">Buat kata sandi baru untuk akun Anda.</p>
+        <PwField label="Kata sandi baru" value={pw} onChange={(v) => { setPw(v); setMsg(""); }} autoComplete="new-password" />
+        <StrengthBar pw={pw} />
+        <PwField label="Ulangi kata sandi baru" value={pw2} onChange={(v) => { setPw2(v); setMsg(""); }} autoComplete="new-password" invalid={pw2.length > 0 && pw !== pw2} />
+        {msg && <p role="alert" className="rounded-xl bg-red-500/10 px-3 py-2 text-sm text-red-700">{msg}</p>}
+        <button onClick={save} disabled={busy || pw.length < 6 || pw !== pw2} className={`${btn} w-full py-3 disabled:opacity-50`}>{busy ? "Menyimpan..." : "Simpan kata sandi"}</button>
       </div>
     </main>
   );
@@ -326,6 +335,12 @@ export default function Settings({ categories, onChanged }: { categories: Catego
           Pulihkan dari cadangan
           <input type="file" accept="application/json,.json" className="hidden" onChange={restore} disabled={busy} />
         </label>
+      </div>
+
+      <div className={`${card} text-center`}>
+        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border-2 border-gold text-xs font-bold text-navy">DA</div>
+        <p className="mt-2 font-semibold">DOMPET ANAM</p>
+        <p className="text-xs text-charcoal/60">Versi Tahap 22 · Data Anda tersimpan di akun pribadi Anda</p>
       </div>
 
       {msg && <p className="mt-3 text-sm text-emerald">{msg}</p>}
