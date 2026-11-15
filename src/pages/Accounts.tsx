@@ -85,7 +85,7 @@ export default function Accounts({ accounts, onChanged, onTransfer }: Props) {
 
       {editing && (
         <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/50 sm:items-center">
-          <div className="w-full max-w-md rounded-t-3xl bg-paper p-5 sm:rounded-3xl">
+          <div className="sheet-up max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-paper p-5 sm:rounded-3xl">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-navy">{editing === "new" ? "Tambah rekening" : "Ubah rekening"}</h3>
               <button onClick={() => setEditing(null)} className="text-sm underline">Tutup</button>

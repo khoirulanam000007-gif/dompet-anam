@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 // Ukuran area potong menyesuaikan tinggi/lebar layar supaya tombol Simpan selalu terlihat.
 const calcV = () => Math.max(180, Math.min(280, window.innerWidth - 72, Math.round(window.innerHeight * 0.4)));
@@ -83,12 +84,12 @@ export default function AvatarEditor({ file, onCancel, onSave }: Props) {
     return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", onKey); };
   }, [busy, onCancel]);
 
-  return (
-    <div className="fade-in fixed inset-0 z-40 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center" onClick={() => !busy && onCancel()}>
+  return createPortal(
+    <div className="fade-in fixed inset-0 z-[58] flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center" onClick={() => !busy && onCancel()}>
       <div
         role="dialog" aria-modal="true" aria-label="Atur foto profil"
         onClick={(e) => e.stopPropagation()}
-        className="sheet-up flex max-h-[100dvh] w-full max-w-sm flex-col overflow-hidden rounded-t-3xl bg-paper shadow-2xl sm:max-h-[92dvh] sm:rounded-3xl"
+        className="flex max-h-[100dvh] w-full max-w-sm flex-col overflow-hidden rounded-t-3xl bg-paper shadow-2xl sm:max-h-[92dvh] sm:rounded-3xl"
       >
         {/* Kepala: tetap di atas */}
         <div className="flex items-center justify-between px-5 pb-2 pt-4">
@@ -137,6 +138,7 @@ export default function AvatarEditor({ file, onCancel, onSave }: Props) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

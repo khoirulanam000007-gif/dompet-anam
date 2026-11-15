@@ -41,7 +41,7 @@ function goalHint(g: { saved_amount: number; target_amount: number; target_date:
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fade-in fixed inset-0 z-30 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center">
-      <div className="sheet-up max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-paper p-5 sm:rounded-3xl">
+      <div className="sheet-up max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-paper p-5 sm:rounded-3xl">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-navy">{title}</h3>
           <button onClick={onClose} className="text-sm underline">Tutup</button>
