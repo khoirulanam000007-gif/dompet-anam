@@ -13,6 +13,7 @@ import Transactions from "./pages/Transactions";
 import TransactionForm from "./components/TransactionForm";
 import TransferForm from "./components/TransferForm";
 const Analysis = lazy(() => import("./pages/Analysis"));
+const Assistant = lazy(() => import("./pages/Assistant"));
 const More = lazy(() => import("./pages/More"));
 const Plans = lazy(() => import("./pages/Plans"));
 import Home from "./pages/Home";
@@ -26,6 +27,7 @@ import { clearOfflineCache } from "./lib/offline";
 const HEAD: Record<string, [string, string, string, [string, string]]> = {
   transaksi: ["Transaksi", "Semua catatan uang masuk dan keluar", "🧾", ["#0b1f3a", "#14527a"]],
   analisis: ["Analisis", "Pahami ke mana uang Anda pergi", "📈", ["#0b3a3a", "#0f8a63"]],
+  asisten: ["Asisten Keuangan", "Analisis otomatis dari transaksi Anda", "💡", ["#1b2a49", "#2f7d6b"]],
   rencana: ["Rencana", "Anggaran, tabungan, utang, dan jadwal", "🎯", ["#3a2a0b", "#9a7a2e"]],
   lainnya: ["Lainnya", "Rekening, kalender, laporan, dan pengaturan", "✨", ["#1a2236", "#3f5483"]],
 };
@@ -34,12 +36,13 @@ const ICONS: Record<string, string> = {
   beranda: "M3 11l9-8 9 8M5 10v10h14V10",
   transaksi: "M4 6h16M4 12h16M4 18h10",
   analisis: "M4 20V10M10 20V4M16 20V14M21 20H3",
+  asisten: "M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3zM19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8.8-2z",
   rencana: "M12 3a9 9 0 100 18 9 9 0 000-18zM12 8a4 4 0 100 8 4 4 0 000-8z",
   lainnya: "M5 12h.01M12 12h.01M19 12h.01",
 };
 
 function Main({ session }: { session: Session }) {
-  const [tab, setTab] = useState<"beranda" | "transaksi" | "analisis" | "rencana" | "lainnya">("beranda");
+  const [tab, setTab] = useState<"beranda" | "transaksi" | "analisis" | "asisten" | "rencana" | "lainnya">("beranda");
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [txs, setTxs] = useState<Tx[]>([]);
@@ -76,7 +79,7 @@ function Main({ session }: { session: Session }) {
 
   useEffect(() => {
     if (!loaded) return;
-    const t = window.setTimeout(() => { import("./pages/Analysis"); import("./pages/Plans"); import("./pages/More"); }, 1500);
+    const t = window.setTimeout(() => { import("./pages/Analysis"); import("./pages/Assistant"); import("./pages/Plans"); import("./pages/More"); }, 1500);
     return () => window.clearTimeout(t);
   }, [loaded]);
 
@@ -120,6 +123,8 @@ function Main({ session }: { session: Session }) {
           onEdit={(t) => setForm({ open: true, editing: t })}
           onChanged={load}
         />
+      ) : tab === "asisten" ? (
+        <Suspense fallback={<HomeSkeleton />}><Assistant accounts={accounts} categories={categories} /></Suspense>
       ) : tab === "analisis" ? (
         <Suspense fallback={<HomeSkeleton />}><Analysis categories={categories} total={total} /></Suspense>
       ) : tab === "lainnya" ? (
@@ -148,12 +153,12 @@ function Main({ session }: { session: Session }) {
       </button>
 
       <nav className="no-print fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-10 mx-auto max-w-xl rounded-3xl border border-charcoal/10 bg-white/90 shadow-lg backdrop-blur">
-        <div className="mx-auto grid max-w-xl grid-cols-5">
-          {([["beranda", "Beranda"], ["transaksi", "Transaksi"], ["analisis", "Analisis"], ["rencana", "Rencana"], ["lainnya", "Lainnya"]] as const).map(([k, label]) => (
+        <div className="mx-auto grid max-w-xl grid-cols-6">
+          {([["beranda", "Beranda"], ["transaksi", "Transaksi"], ["analisis", "Analisis"], ["asisten", "Asisten"], ["rencana", "Rencana"], ["lainnya", "Lainnya"]] as const).map(([k, label]) => (
             <button
               key={k}
               onClick={() => setTab(k)}
-              className={`py-2.5 text-[11px] font-medium ${tab === k ? "rounded-2xl bg-navy/10 font-bold text-navy" : "text-charcoal/60"}`}
+              className={`py-2.5 text-[10px] font-medium ${tab === k ? "rounded-2xl bg-navy/10 font-bold text-navy" : "text-charcoal/60"}`}
             >
               <svg viewBox="0 0 24 24" className="mx-auto mb-0.5 h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={ICONS[k]} /></svg>
               {label}
