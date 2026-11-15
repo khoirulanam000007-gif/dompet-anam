@@ -21,7 +21,7 @@ input, select { color: var(--color-charcoal); }
 .dark {
   --color-paper: #0d1626;
   --color-charcoal: #e4e7ec;
-  --color-white: #16243b;
+  --surface: #16243b;
   --color-navy: #1c3d6e;
   color-scheme: dark;
 }
@@ -78,7 +78,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: non
 .page-hero { padding-bottom: 3rem; }
 .page-hero + * { position: relative; z-index: 1; margin-top: -1.75rem; }
 .bg-charcoal\/10.p-1.rounded-xl {
-  background: var(--color-white);
+  background: var(--surface);
   border-radius: 1rem;
   padding: 0.3rem;
   box-shadow: 0 1px 2px rgba(11, 31, 58, 0.06), 0 12px 28px -12px rgba(11, 31, 58, 0.35);
@@ -87,3 +87,16 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { outline: non
 /* ===== Tahap 18: tanpa header atas; hero memanjang sampai ke tepi atas layar ===== */
 .hero { padding-top: calc(1rem + env(safe-area-inset-top)); }
 .page-hero { padding-top: calc(1.25rem + env(safe-area-inset-top)); }
+
+/* ===== Tahap 19: tema gelap yang terbaca ===== */
+/* Permukaan kartu memakai --surface, sehingga teks putih (text-white) tidak ikut menjadi gelap. */
+:root { --surface: #ffffff; }
+html.dark { --surface: #16243b; }
+.bg-white { background-color: var(--surface); }
+.bg-white\/90 { background-color: color-mix(in srgb, var(--surface) 90%, transparent); }
+.dark { --color-navy: #25508f; }
+.dark .bg-gold.text-navy { color: #0b1f3a; }
+.dark .text-red-700 { color: #f87171; }
+.dark .text-emerald { color: #34d399; }
+.dark option { background: var(--surface); color: var(--color-charcoal); }
+.dark ::placeholder { color: rgba(228, 231, 236, 0.5); }

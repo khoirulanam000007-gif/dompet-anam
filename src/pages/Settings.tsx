@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { confirmBox, toast } from "../lib/ui";
 import { restoreBackup } from "../lib/restore";
+import { getMode, setMode, clearLock, bioSupported, registerBio, verifyBio, type LockMode } from "../lib/lock";
 import type { Category } from "../lib/types";
 import Avatar from "../components/Avatar";
 import AvatarEditor from "../components/AvatarEditor";
@@ -12,8 +13,22 @@ const sha = async (s: string) =>
   Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)))).map((b) => b.toString(16).padStart(2, "0")).join("");
 
 export function LockScreen({ onUnlock }: { onUnlock: () => void }) {
+  const mode = getMode();
+  const hasPin = !!localStorage.getItem("pin");
   const [pin, setPin] = useState("");
   const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function bio(auto = false) {
+    setBusy(true);
+    setErr("");
+    const ok = await verifyBio();
+    setBusy(false);
+    if (ok) onUnlock();
+    else if (!auto) setErr(hasPin ? "Verifikasi belum berhasil. Coba lagi atau masukkan PIN." : "Verifikasi belum berhasil. Coba lagi.");
+  }
+  useEffect(() => { if (mode === "bio") bio(true); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   async function change(v: string) {
     const d = v.replace(/\D/g, "").slice(0, 4);
     setPin(d);
@@ -22,19 +37,31 @@ export function LockScreen({ onUnlock }: { onUnlock: () => void }) {
     else { setErr("PIN salah."); setPin(""); }
   }
   async function forgot() {
-    if (!(await confirmBox("Keluar dari akun dan hapus PIN? Anda perlu masuk lagi dengan email dan kata sandi.", { okLabel: "Keluar" }))) return;
-    localStorage.removeItem("pin");
+    if (!(await confirmBox("Keluar dari akun dan hapus kunci aplikasi? Anda perlu masuk lagi dengan email dan kata sandi.", { okLabel: "Keluar" }))) return;
+    clearLock();
     await supabase.auth.signOut();
     onUnlock();
   }
   return (
-    <main className="flex min-h-screen items-center justify-center bg-navy p-5">
-      <div className="w-full max-w-sm rounded-3xl bg-paper p-7 text-center">
-        <h1 className="text-xl font-semibold text-navy">DOMPET ANAM</h1>
-        <p className="mt-1 text-sm text-charcoal/70">Masukkan PIN 4 angka</p>
-        <input className={`${field} mt-4 text-center text-2xl tracking-[0.5em]`} type="password" inputMode="numeric" autoFocus value={pin} onChange={(e) => change(e.target.value)} />
-        {err && <p className="mt-2 text-sm text-red-700">{err}</p>}
-        <button onClick={forgot} className="mt-4 text-sm text-navy underline">Lupa PIN?</button>
+    <main className="hero flex min-h-screen items-center justify-center p-5">
+      <div className="rise w-full max-w-sm rounded-3xl bg-paper p-7 text-center shadow-xl">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border-2 border-gold text-lg font-bold text-navy">DA</div>
+        <h1 className="mt-3 text-xl font-bold text-navy">DOMPET ANAM</h1>
+        <p className="mt-1 text-sm text-charcoal/70">Aplikasi terkunci</p>
+        {mode === "bio" && (
+          <button onClick={() => bio()} disabled={busy} className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald py-3.5 font-semibold text-white disabled:opacity-60">
+            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 11a7 7 0 0114 0M8.5 18.5c.8-1.6 1.2-3.2 1.2-5a2.3 2.3 0 114.6 0c0 2.4-.4 4.4-1.4 6.3M12 11.2v1.3M16 20c.9-1.9 1.4-4 1.4-6.5a5.4 5.4 0 00-10.8 0c0 1.2-.1 2.2-.4 3" /></svg>
+            {busy ? "Memverifikasi..." : "Buka dengan sidik jari / wajah"}
+          </button>
+        )}
+        {hasPin && (
+          <>
+            <p className="mt-5 text-sm text-charcoal/70">{mode === "bio" ? "atau masukkan PIN cadangan" : "Masukkan PIN 4 angka"}</p>
+            <input className={`${field} mt-2 text-center text-2xl tracking-[0.5em]`} type="password" inputMode="numeric" autoFocus={mode !== "bio"} value={pin} onChange={(e) => change(e.target.value)} />
+          </>
+        )}
+        {err && <p className="mt-3 text-sm text-red-700">{err}</p>}
+        <button onClick={forgot} className="mt-5 text-sm text-navy underline">Tidak bisa membuka? Keluar dari akun</button>
       </div>
     </main>
   );
@@ -76,15 +103,32 @@ export default function Settings({ categories, onChanged }: { categories: Catego
   const [cKind, setCKind] = useState<"expense" | "income">("expense");
   const [msg, setMsg] = useState("");
   const [pin, setPin] = useState("");
-  const [hasPin, setHasPin] = useState(!!localStorage.getItem("pin"));
+  const [lockMode, setLockMode] = useState<LockMode>(getMode());
+  const [panel, setPanel] = useState<null | "pin" | "backup">(null);
+  const [bioOk, setBioOk] = useState(false);
+  useEffect(() => { bioSupported().then(setBioOk); }, []);
   const [busy, setBusy] = useState(false);
 
-  async function savePin() {
-    if (!/^\d{4}$/.test(pin)) return setMsg("PIN harus 4 angka.");
-    localStorage.setItem("pin", await sha(pin));
-    setHasPin(true); setPin(""); setMsg("Kunci PIN aktif. PIN diminta setiap aplikasi dibuka.");
+  async function chooseLock(k: LockMode) {
+    if (k === lockMode && k !== "pin") return;
+    if (k === "none") {
+      if (!(await confirmBox("Matikan kunci aplikasi? Aplikasi akan langsung terbuka tanpa PIN atau biometrik.", { okLabel: "Matikan" }))) return;
+      clearLock(); setLockMode("none"); setPanel(null); toast("Kunci aplikasi dimatikan", "ok");
+    } else if (k === "pin") {
+      setPin(""); setPanel("pin");
+    } else {
+      if (await registerBio(email || name)) {
+        setMode("bio"); setLockMode("bio"); setPanel("backup"); toast("Sidik jari / wajah aktif", "ok");
+      } else toast("Pendaftaran dibatalkan atau tidak didukung di perangkat ini.", "error");
+    }
   }
-  function removePin() { localStorage.removeItem("pin"); setHasPin(false); setMsg("Kunci PIN dimatikan."); }
+  async function savePin() {
+    if (!/^\d{4}$/.test(pin)) return toast("PIN harus 4 angka.", "error");
+    localStorage.setItem("pin", await sha(pin));
+    if (panel === "pin") { localStorage.removeItem("bioCred"); setMode("pin"); setLockMode("pin"); }
+    setPin(""); setPanel(null);
+    toast(panel === "pin" ? "Kunci PIN aktif" : "PIN cadangan tersimpan", "ok");
+  }
 
   async function backup() {
     const names = ["profiles", "accounts", "categories", "savings_goals", "debts", "recurring_rules", "budgets", "transactions"];
@@ -240,16 +284,33 @@ export default function Settings({ categories, onChanged }: { categories: Catego
       </div>
 
       <div className={card}>
-        <p className="font-semibold">🔒 Kunci PIN</p>
-        <p className="text-sm text-charcoal/60">Kunci di perangkat ini saja. Bukan pengganti kata sandi akun.</p>
-        {hasPin ? (
-          <button onClick={removePin} className="mt-2 rounded-xl border border-red-700 px-4 py-2.5 text-red-700">Matikan PIN</button>
-        ) : (
-          <>
+        <p className="font-semibold">🔒 Kunci aplikasi</p>
+        <p className="text-sm text-charcoal/60">Berlaku di perangkat ini saja. Tidak menggantikan kata sandi akun.</p>
+        <div className="mt-3 space-y-2">
+          {([
+            ["none", "Tanpa kunci", "Aplikasi langsung terbuka"],
+            ["pin", "PIN 4 angka", "Masukkan PIN setiap membuka aplikasi"],
+            ["bio", "Sidik jari / Wajah", bioOk ? "Memakai biometrik bawaan HP Anda" : "Belum tersedia di perangkat atau browser ini"],
+          ] as const).map(([k, t, d]) => (
+            <button key={k} onClick={() => chooseLock(k)} disabled={k === "bio" && !bioOk} className={`flex w-full items-center gap-3 rounded-2xl border px-3 py-3 text-left ${lockMode === k ? "border-emerald bg-emerald/10" : "border-charcoal/15"} ${k === "bio" && !bioOk ? "opacity-50" : ""}`}>
+              <span className={`h-4 w-4 shrink-0 rounded-full border-2 ${lockMode === k ? "border-emerald bg-emerald" : "border-charcoal/40"}`} />
+              <span><span className="block font-medium">{t}</span><span className="block text-xs text-charcoal/60">{d}</span></span>
+            </button>
+          ))}
+        </div>
+        {lockMode === "pin" && !panel && <button onClick={() => setPanel("pin")} className="mt-3 text-sm text-navy underline">Ganti PIN</button>}
+        {lockMode === "bio" && !panel && <button onClick={() => setPanel("backup")} className="mt-3 text-sm text-navy underline">{localStorage.getItem("pin") ? "Ganti PIN cadangan" : "Tambah PIN cadangan (disarankan)"}</button>}
+        {panel && (
+          <div className="mt-3">
+            <p className="text-sm text-charcoal/70">{panel === "pin" ? "Buat PIN 4 angka" : "PIN cadangan jika biometrik gagal (opsional)"}</p>
             <input className={`${field} mt-2`} type="password" inputMode="numeric" placeholder="PIN 4 angka" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))} />
-            <button onClick={savePin} className={`${btn} mt-2`}>Aktifkan PIN</button>
-          </>
+            <div className="mt-2 flex gap-2">
+              <button onClick={savePin} className={btn}>Simpan PIN</button>
+              <button onClick={() => { setPanel(null); setPin(""); }} className="px-3 text-sm underline">{panel === "backup" ? "Lewati" : "Batal"}</button>
+            </div>
+          </div>
         )}
+        <p className="mt-3 text-xs text-charcoal/50">Aplikasi juga terkunci lagi bila ditinggalkan lebih dari 30 detik.</p>
       </div>
 
       <div className={card}>

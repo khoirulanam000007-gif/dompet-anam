@@ -7,6 +7,7 @@ import Login from "./pages/Login";
 import { NewPassword, LockScreen } from "./pages/Settings";
 import { processRecurring } from "./lib/recurring";
 import { loadProfile } from "./lib/profile";
+import { getMode } from "./lib/lock";
 import Transactions from "./pages/Transactions";
 import TransactionForm from "./components/TransactionForm";
 import TransferForm from "./components/TransferForm";
@@ -165,7 +166,17 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
   const [recovery, setRecovery] = useState(false);
-  const [locked, setLocked] = useState(!!localStorage.getItem("pin"));
+  const [locked, setLocked] = useState(getMode() !== "none");
+
+  useEffect(() => {
+    let hiddenAt = 0;
+    const f = () => {
+      if (document.hidden) hiddenAt = Date.now();
+      else if (hiddenAt && Date.now() - hiddenAt > 30000 && getMode() !== "none") setLocked(true);
+    };
+    document.addEventListener("visibilitychange", f);
+    return () => document.removeEventListener("visibilitychange", f);
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
