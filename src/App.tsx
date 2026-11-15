@@ -6,12 +6,14 @@ import type { Account, Category, Tx } from "./lib/types";
 import Login from "./pages/Login";
 import { NewPassword, LockScreen } from "./pages/Settings";
 import { processRecurring } from "./lib/recurring";
-import { loadProfile } from "./lib/profile";
+import { loadProfile, markOnboarded, useProfile } from "./lib/profile";
+import Onboarding from "./components/Onboarding";
 import { getMode } from "./lib/lock";
 import Transactions from "./pages/Transactions";
 import TransactionForm from "./components/TransactionForm";
 import TransferForm from "./components/TransferForm";
 const Analysis = lazy(() => import("./pages/Analysis"));
+const Assistant = lazy(() => import("./pages/Assistant"));
 const More = lazy(() => import("./pages/More"));
 const Plans = lazy(() => import("./pages/Plans"));
 import Home from "./pages/Home";
@@ -20,29 +22,27 @@ import HomeSkeleton from "./components/Skeleton";
 import { toast } from "./lib/ui";
 import StatusPills from "./components/StatusPills";
 import InstallPrompt from "./components/InstallPrompt";
-import LucideIcon, { type LucideName } from "./components/LucideIcon";
-import type { ReactNode } from "react";
 import { clearOfflineCache } from "./lib/offline";
 
-// Ikon besar di pojok header: Lucide untuk Transaksi, Rencana, Lainnya. Analisis tetap emoji aslinya.
-const bigIcon = (name: LucideName) => <LucideIcon name={name} className="h-24 w-24" strokeWidth={1.2} />;
-const HEAD: Record<string, [string, string, ReactNode, [string, string]]> = {
-  transaksi: ["Transaksi", "Semua catatan uang masuk dan keluar", bigIcon("receiptText"), ["#0b1f3a", "#14527a"]],
+const HEAD: Record<string, [string, string, string, [string, string]]> = {
+  transaksi: ["Transaksi", "Semua catatan uang masuk dan keluar", "🧾", ["#0b1f3a", "#14527a"]],
   analisis: ["Analisis", "Pahami ke mana uang Anda pergi", "📈", ["#0b3a3a", "#0f8a63"]],
-  rencana: ["Rencana", "Anggaran, tabungan, utang, dan jadwal", bigIcon("target"), ["#3a2a0b", "#9a7a2e"]],
-  lainnya: ["Lainnya", "Rekening, kalender, laporan, dan pengaturan", bigIcon("layoutGrid"), ["#1a2236", "#3f5483"]],
+  asisten: ["Asisten Keuangan", "Analisis otomatis dari transaksi Anda", "💡", ["#1b2a49", "#2f7d6b"]],
+  rencana: ["Rencana", "Anggaran, tabungan, utang, dan jadwal", "🎯", ["#3a2a0b", "#9a7a2e"]],
+  lainnya: ["Lainnya", "Rekening, kalender, laporan, dan pengaturan", "✨", ["#1a2236", "#3f5483"]],
 };
 
 const ICONS: Record<string, string> = {
   beranda: "M3 11l9-8 9 8M5 10v10h14V10",
+  transaksi: "M4 6h16M4 12h16M4 18h10",
   analisis: "M4 20V10M10 20V4M16 20V14M21 20H3",
+  asisten: "M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3zM19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8.8-2z",
+  rencana: "M12 3a9 9 0 100 18 9 9 0 000-18zM12 8a4 4 0 100 8 4 4 0 000-8z",
+  lainnya: "M5 12h.01M12 12h.01M19 12h.01",
 };
 
-// Ikon menu Transaksi, Rencana, dan Lainnya memakai Lucide. Beranda dan Analisis tetap memakai ikon aslinya.
-const NAV_LUCIDE: Partial<Record<string, LucideName>> = { transaksi: "receiptText", rencana: "target", lainnya: "layoutGrid" };
-
 function Main({ session }: { session: Session }) {
-  const [tab, setTab] = useState<"beranda" | "transaksi" | "analisis" | "rencana" | "lainnya">("beranda");
+  const [tab, setTab] = useState<"beranda" | "transaksi" | "analisis" | "asisten" | "rencana" | "lainnya">("beranda");
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [txs, setTxs] = useState<Tx[]>([]);
@@ -79,9 +79,16 @@ function Main({ session }: { session: Session }) {
 
   useEffect(() => {
     if (!loaded) return;
-    const t = window.setTimeout(() => { import("./pages/Analysis"); import("./pages/Plans"); import("./pages/More"); }, 1500);
+    const t = window.setTimeout(() => { import("./pages/Analysis"); import("./pages/Assistant"); import("./pages/Plans"); import("./pages/More"); }, 1500);
     return () => window.clearTimeout(t);
   }, [loaded]);
+
+  // Panduan awal: hanya untuk akun yang benar-benar baru (belum ditandai, belum punya rekening/transaksi).
+  const profile = useProfile();
+  const fresh = loaded && !error && profile.loaded && !profile.onboarded;
+  const needOnboarding = fresh && accounts.length === 0 && txs.length === 0;
+  useEffect(() => { if (fresh && !needOnboarding) markOnboarded(); }, [fresh, needOnboarding]);
+  if (needOnboarding) return <Onboarding initialName={profile.name} onFinish={() => { load(); }} />;
 
   const total = accounts.reduce((s, a) => s + a.balance, 0);
   const sum = (type: string) => monthTx.filter((x) => x.type === type).reduce((s, x) => s + x.amount, 0);
@@ -116,6 +123,8 @@ function Main({ session }: { session: Session }) {
           onEdit={(t) => setForm({ open: true, editing: t })}
           onChanged={load}
         />
+      ) : tab === "asisten" ? (
+        <Suspense fallback={<HomeSkeleton />}><Assistant accounts={accounts} categories={categories} /></Suspense>
       ) : tab === "analisis" ? (
         <Suspense fallback={<HomeSkeleton />}><Analysis categories={categories} total={total} /></Suspense>
       ) : tab === "lainnya" ? (
@@ -144,16 +153,14 @@ function Main({ session }: { session: Session }) {
       </button>
 
       <nav className="no-print fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-10 mx-auto max-w-xl rounded-3xl border border-charcoal/10 bg-white/90 shadow-lg backdrop-blur">
-        <div className="mx-auto grid max-w-xl grid-cols-5">
-          {([["beranda", "Beranda"], ["transaksi", "Transaksi"], ["analisis", "Analisis"], ["rencana", "Rencana"], ["lainnya", "Lainnya"]] as const).map(([k, label]) => (
+        <div className="mx-auto grid max-w-xl grid-cols-6">
+          {([["beranda", "Beranda"], ["transaksi", "Transaksi"], ["analisis", "Analisis"], ["asisten", "Asisten"], ["rencana", "Rencana"], ["lainnya", "Lainnya"]] as const).map(([k, label]) => (
             <button
               key={k}
               onClick={() => setTab(k)}
-              className={`py-2.5 text-[11px] font-medium ${tab === k ? "rounded-2xl bg-navy/10 font-bold text-navy" : "text-charcoal/60"}`}
+              className={`py-2.5 text-[10px] font-medium ${tab === k ? "rounded-2xl bg-navy/10 font-bold text-navy" : "text-charcoal/60"}`}
             >
-              {NAV_LUCIDE[k]
-                ? <LucideIcon name={NAV_LUCIDE[k]!} className="mx-auto mb-0.5 h-5 w-5" />
-                : <svg viewBox="0 0 24 24" className="mx-auto mb-0.5 h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={ICONS[k]} /></svg>}
+              <svg viewBox="0 0 24 24" className="mx-auto mb-0.5 h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={ICONS[k]} /></svg>
               {label}
             </button>
           ))}
