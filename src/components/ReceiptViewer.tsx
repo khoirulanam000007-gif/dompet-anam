@@ -16,7 +16,7 @@ export default function ReceiptViewer({ src, onClose }: { src: string | null; on
       <div className="flex items-center justify-between px-4 pb-2 pt-[calc(0.75rem+env(safe-area-inset-top))] text-white">
         <p className="font-semibold">Foto struk</p>
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-          {src && <a href={src} download="struk-dompet-anam.jpg" className="rounded-full bg-white/15 px-3 py-1.5 text-sm">Unduh</a>}
+          {src && <a href={src} download="struk-dompetpro.jpg" className="rounded-full bg-white/15 px-3 py-1.5 text-sm">Unduh</a>}
           <button onClick={onClose} aria-label="Tutup" className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-xl leading-none">×</button>
         </div>
       </div>

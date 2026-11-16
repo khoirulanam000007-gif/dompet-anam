@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Logo } from "./Logo";
 import { isIOS, isStandalone, useInstall } from "../lib/install";
 import { isDemo } from "../lib/demo";
 
@@ -19,9 +20,9 @@ export default function InstallPrompt() {
   return (
     <div role="dialog" aria-label="Pasang aplikasi" className="no-print sheet-up fixed inset-x-4 bottom-[calc(8.25rem+env(safe-area-inset-bottom))] z-30 mx-auto max-w-md rounded-2xl bg-navy p-4 text-white shadow-2xl">
       <div className="flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gold text-sm font-extrabold text-navy">DA</span>
+        <Logo size={40} className="shrink-0" />
         <div className="min-w-0 flex-1">
-          <p className="font-semibold">Pasang DOMPET ANAM di layar utama</p>
+          <p className="font-semibold">Pasang DompetPro di layar utama</p>
           <p className="mt-0.5 text-xs text-white/75">
             {canPrompt ? "Buka lebih cepat, tampil layar penuh seperti aplikasi biasa." : "Ketuk tombol Bagikan (kotak dengan panah ke atas), lalu pilih “Tambah ke Layar Utama”."}
           </p>

@@ -55,7 +55,7 @@ export class Pdf {
   private pages: string[][] = [];
   private cur: string[] = [];
   title = "Dokumen";
-  author = "DOMPET ANAM";
+  author = "DOMPETPRO";
 
   addPage() { this.cur = []; this.pages.push(this.cur); }
   get pageCount() { return this.pages.length; }
@@ -128,7 +128,7 @@ export class Pdf {
     add(""); // Pages, diisi nanti
     add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
     add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
-    const info = add(`<< /Title (${esc(clean(this.title))}) /Author (${esc(clean(this.author))}) /Producer (DOMPET ANAM) >>`);
+    const info = add(`<< /Title (${esc(clean(this.title))}) /Author (${esc(clean(this.author))}) /Producer (DOMPETPRO) >>`);
     const kids: number[] = [];
     for (const p of this.pages) {
       const body = p.join("\n");

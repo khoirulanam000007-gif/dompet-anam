@@ -107,7 +107,7 @@ export default function ImportWizard({ accounts, categories, onClose, onDone }: 
   function download() {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([templateCsv()], { type: "text/csv;charset=utf-8" }));
-    a.download = "template-impor-dompet-anam.csv";
+    a.download = "template-impor-dompetpro.csv";
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 3000);
   }

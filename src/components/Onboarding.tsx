@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Logo } from "./Logo";
 import { supabase } from "../lib/supabase";
 import { confirmBox, toast } from "../lib/ui";
 import { rupiah } from "../lib/format";
@@ -89,9 +90,9 @@ export default function Onboarding({ initialName, onFinish }: Props) {
       <div key={step} className="rise w-full max-w-sm rounded-3xl bg-paper p-6 shadow-xl">
         {step === 0 && (
           <>
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border-2 border-gold text-xl font-bold text-navy">DA</div>
+            <Logo size={64} className="mx-auto" />
             <h1 className="mt-3 text-center text-2xl font-extrabold text-navy">Selamat datang!</h1>
-            <p className="mt-1 text-center text-sm text-charcoal/70">Mari siapkan Dompet Anam dalam 2 langkah singkat. Tidak sampai satu menit.</p>
+            <p className="mt-1 text-center text-sm text-charcoal/70">Mari siapkan DompetPro dalam 2 langkah singkat. Tidak sampai satu menit.</p>
             <label className="mt-5 block">
               <span className="mb-1 block text-sm font-medium text-charcoal/80">Siapa nama Anda?</span>
               <input className={field} placeholder="Nama panggilan" autoComplete="name" value={name} onChange={(e) => { setName(e.target.value); setErr(""); }} onKeyDown={(e) => e.key === "Enter" && next()} autoFocus />

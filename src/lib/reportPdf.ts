@@ -33,9 +33,9 @@ export function buildReportPdf(r: ReportInput): Uint8Array {
   pdf.rect(0, 0, PAGE_W, 98, NAVY);
   pdf.rect(0, 98, PAGE_W, 3, GOLD);
   pdf.circle(M + 22, 50, 21, undefined, GOLD, 1.6);
-  pdf.text("DA", M + 22, 55, { size: 14, bold: true, color: WHITE, align: "center" });
+  pdf.text("DP", M + 22, 55, { size: 14, bold: true, color: WHITE, align: "center" });
   pdf.text("LAPORAN KEUANGAN", M + 56, 44, { size: 19, bold: true, color: WHITE });
-  pdf.text("DOMPET ANAM", M + 56, 61, { size: 9, bold: true, color: GOLD });
+  pdf.text("DOMPETPRO", M + 56, 61, { size: 9, bold: true, color: GOLD });
   pdf.text(r.userName ? `Atas nama: ${fit(r.userName, 9, 240)}` : "Aplikasi keuangan pribadi", M + 56, 77, { size: 9, color: [0.85, 0.88, 0.93] });
   pdf.text("PERIODE", PAGE_W - M, 40, { size: 7.5, bold: true, color: GOLD, align: "right" });
   pdf.text(r.periodLabel, PAGE_W - M, 58, { size: 15, bold: true, color: WHITE, align: "right" });
@@ -121,7 +121,7 @@ export function buildReportPdf(r: ReportInput): Uint8Array {
   const contHeader = () => {
     pdf.rect(0, 0, PAGE_W, 30, NAVY);
     pdf.rect(0, 30, PAGE_W, 2, GOLD);
-    pdf.text("DOMPET ANAM", M, 20, { size: 9, bold: true, color: GOLD });
+    pdf.text("DOMPETPRO", M, 20, { size: 9, bold: true, color: GOLD });
     pdf.text(`Laporan ${r.periodLabel}`, PAGE_W - M, 20, { size: 9, color: WHITE, align: "right" });
   };
   const tableHead = (yy: number) => {
@@ -159,7 +159,7 @@ export function buildReportPdf(r: ReportInput): Uint8Array {
   for (let p = 1; p <= n; p++) {
     pdf.goto(p);
     pdf.line(M, PAGE_H - 34, PAGE_W - M, PAGE_H - 34, TRACK, 0.8);
-    pdf.text(`DOMPET ANAM  ·  Laporan keuangan ${r.periodLabel}`, M, PAGE_H - 20, { size: 7.5, color: MUTED });
+    pdf.text(`DOMPETPRO  ·  Laporan keuangan ${r.periodLabel}`, M, PAGE_H - 20, { size: 7.5, color: MUTED });
     pdf.text(`Halaman ${p} dari ${n}`, PAGE_W - M, PAGE_H - 20, { size: 7.5, color: MUTED, align: "right" });
   }
   return pdf.build();
