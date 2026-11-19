@@ -1,7 +1,6 @@
-// Kunci diisi lewat Environment Variables (Vercel) atau file .env.local — bukan ditulis di kode.
-export const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim();
-export const SUPABASE_KEY = (import.meta.env.VITE_SUPABASE_KEY as string | undefined)?.trim();
-export const CONFIGURED = Boolean(SUPABASE_URL && SUPABASE_KEY);
+// Kunci publik (aman dipakai di aplikasi). Jangan pernah menaruh kunci "secret" di sini.
+export const SUPABASE_URL = "https://elldisiecpnywxtgnhrd.supabase.co";
+export const SUPABASE_KEY = "sb_publishable_bwU7pE0-piFYoIwDr74wcQ_qV12Tp-a";
 
-// Tombol "Coba demo tanpa daftar" di halaman masuk. Isi VITE_ENABLE_DEMO=false untuk menyembunyikannya.
-export const ENABLE_DEMO = (import.meta.env.VITE_ENABLE_DEMO as string | undefined) !== "false";
+// Tombol "Coba demo tanpa daftar" di halaman masuk. Ubah ke false untuk menyembunyikannya.
+export const ENABLE_DEMO = true;
