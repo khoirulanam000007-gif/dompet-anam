@@ -1,9 +1,7 @@
-// Kunci publik (aman dipakai di aplikasi). Jangan pernah menaruh kunci "secret" di sini.
-export const SUPABASE_URL = "https://elldisiecpnywxtgnhrd.supabase.co";
-export const SUPABASE_KEY = "sb_publishable_bwU7pE0-piFYoIwDr74wcQ_qV12Tp-a";
+// Kunci diisi lewat Environment Variables (Vercel) atau file .env.local — bukan ditulis di kode.
+export const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim();
+export const SUPABASE_KEY = (import.meta.env.VITE_SUPABASE_KEY as string | undefined)?.trim();
+export const CONFIGURED = Boolean(SUPABASE_URL && SUPABASE_KEY);
 
-// Tombol "Coba demo tanpa daftar" di halaman masuk. Ubah ke false untuk menyembunyikannya.
-export const ENABLE_DEMO = true;
-
-// Kunci publik notifikasi push (VAPID). Aman dipublikasikan. Pasangan kunci rahasianya ada di Supabase (Secrets).
-export const VAPID_PUBLIC_KEY = "BBrKwnNZHBdA3tLd-0qu3-O1VfuZFHDqRXxKyQbler9AbWS7hmGfFWHkmrhTKeRG9MGjzOEbhK2ksLaec1WJzc4";
+// Tombol "Coba demo tanpa daftar" di halaman masuk. Isi VITE_ENABLE_DEMO=false untuk menyembunyikannya.
+export const ENABLE_DEMO = (import.meta.env.VITE_ENABLE_DEMO as string | undefined) !== "false";

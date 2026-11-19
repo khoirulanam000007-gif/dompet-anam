@@ -1,5 +1,4 @@
 import { supabase } from "./supabase";
-import { BRAND } from "./brand";
 
 type Row = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 const LABEL: Record<string, string> = {
@@ -21,7 +20,8 @@ async function upsertAll(table: string, rows: Row[]) {
 export async function restoreBackup(text: string): Promise<string> {
   let b: Row;
   try { b = JSON.parse(text); } catch { throw new Error("File ini bukan cadangan yang valid."); }
-  if (!b || ![BRAND.backupId, ...BRAND.legacyBackupIds].includes(b.app as string)) throw new Error("File ini bukan cadangan DompetPro.");
+  // Cadangan lama memakai nama "DOMPET ANAM"; keduanya diterima.
+  if (!b || !["DOMPET PRO", "DOMPET ANAM"].includes(b.app)) throw new Error("File ini bukan cadangan Dompet Pro.");
   const list = (k: string): Row[] => (Array.isArray(b[k]) ? b[k] : []);
 
   // Kategori: pakai yang sudah ada bila nama & jenisnya sama (kategori bawaan akun baru), sisanya ditambahkan.

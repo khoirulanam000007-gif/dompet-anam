@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Logo } from "./Logo";
 import { isIOS, isStandalone, useInstall } from "../lib/install";
 import { isDemo } from "../lib/demo";
+import Logo from "./Logo";
 
 const SNOOZE = "installSnooze";
 const snoozed = () => Date.now() - Number(localStorage.getItem(SNOOZE) ?? 0) < 7 * 86400000;
@@ -20,9 +20,9 @@ export default function InstallPrompt() {
   return (
     <div role="dialog" aria-label="Pasang aplikasi" className="no-print sheet-up fixed inset-x-4 bottom-[calc(8.25rem+env(safe-area-inset-bottom))] z-30 mx-auto max-w-md rounded-2xl bg-navy p-4 text-white shadow-2xl">
       <div className="flex items-start gap-3">
-        <Logo size={40} className="shrink-0" />
+        <Logo className="h-10 w-10 shrink-0" />
         <div className="min-w-0 flex-1">
-          <p className="font-semibold">Pasang DompetPro di layar utama</p>
+          <p className="font-semibold">Pasang Dompet Pro di layar utama</p>
           <p className="mt-0.5 text-xs text-white/75">
             {canPrompt ? "Buka lebih cepat, tampil layar penuh seperti aplikasi biasa." : "Ketuk tombol Bagikan (kotak dengan panah ke atas), lalu pilih “Tambah ke Layar Utama”."}
           </p>

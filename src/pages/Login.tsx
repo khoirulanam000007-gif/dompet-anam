@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { Logo, Wordmark } from "../components/Logo";
-import { BRAND } from "../lib/brand";
 import { supabase } from "../lib/supabase";
 import { ENABLE_DEMO } from "../lib/config";
 import { enterDemo } from "../lib/demo";
+import Logo from "../components/Logo";
 
 export default function Login() {
   const [mode, setMode] = useState<"masuk" | "daftar">("masuk");
@@ -11,7 +10,6 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [show, setShow] = useState(false);
 
   async function forgot() {
     if (!email.trim()) return setMsg("Isi email dulu, lalu tekan Lupa kata sandi.");
@@ -42,33 +40,26 @@ export default function Login() {
     setBusy(false);
   }
 
-  const onEnter = (e: React.KeyboardEvent) => { if (e.key === "Enter" && !busy) submit(); };
-
   const input =
     "w-full rounded-xl border border-charcoal/15 bg-white px-4 py-3 text-base outline-none focus:border-emerald focus:ring-2 focus:ring-emerald/30";
 
   return (
     <main className="hero flex min-h-screen flex-col items-center justify-center p-5">
       <div className="rise mb-6 text-center text-white">
-        <Logo size={72} className="mx-auto drop-shadow-lg" />
-        <p className="mt-3 text-sm text-white/80">{BRAND.tagline}</p>
+        <Logo className="mx-auto h-20 w-20 drop-shadow-lg" />
+        <p className="mt-3 text-sm text-white/80">Kelola uang dengan rapi, tenang, dan terarah.</p>
       </div>
       <div className="rise w-full max-w-sm rounded-3xl bg-paper p-7 shadow-xl" style={{ animationDelay: "80ms" }}>
-        <h1 className="text-2xl font-extrabold tracking-tight text-navy"><Wordmark onLight /></h1>
+        <h1 className="text-2xl font-semibold tracking-wide text-navy">DOMPET <span className="text-gold">PRO</span></h1>
         <p className="mt-1 text-sm text-charcoal/70">Catat keuangan pribadi Anda.</p>
         <div className="mt-1 h-0.5 w-10 bg-gold" />
 
         <div className="mt-6 space-y-3">
           {mode === "daftar" && (
-            <input className={input} placeholder="Nama" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={onEnter} />
+            <input className={input} placeholder="Nama" value={name} onChange={(e) => setName(e.target.value)} />
           )}
-          <input className={input} type="email" inputMode="email" autoComplete="email" autoCapitalize="none" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={onEnter} />
-          <div className="relative">
-            <input className={`${input} pr-12`} type={show ? "text" : "password"} autoComplete={mode === "masuk" ? "current-password" : "new-password"} placeholder="Kata sandi" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={onEnter} />
-            <button type="button" onClick={() => setShow((v) => !v)} aria-label={show ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"} className="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-charcoal/60">
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" />{show && <path d="M4 4l16 16" />}</svg>
-            </button>
-          </div>
+          <input className={input} type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input className={input} type="password" placeholder="Kata sandi" value={password} onChange={(e) => setPassword(e.target.value)} />
         </div>
 
         {msg && <p className="mt-3 text-sm text-red-700">{msg}</p>}
