@@ -204,6 +204,11 @@ const ICONS = {
     ["path", { d: "M12 12v4h4" }],
     ["path", { d: "M13 20a5 5 0 0 0 9-3 4.5 4.5 0 0 0-4.5-4.5c-1.33 0-2.54.54-3.41 1.41L12 16" }],
   ],
+  logOut: [
+    ["path", { d: "m16 17 5-5-5-5" }],
+    ["path", { d: "M21 12H9" }],
+    ["path", { d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" }],
+  ],
 } satisfies Record<string, IconNode>;
 
 export type LucideName = keyof typeof ICONS;

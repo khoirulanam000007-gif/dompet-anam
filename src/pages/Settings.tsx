@@ -39,7 +39,7 @@ export function LockScreen({ onUnlock }: { onUnlock: () => void }) {
     else { setErr("PIN salah."); setPin(""); }
   }
   async function forgot() {
-    if (!(await confirmBox("Keluar dari akun dan hapus kunci aplikasi? Anda perlu masuk lagi dengan email dan kata sandi.", { okLabel: "Keluar" }))) return;
+    if (!(await confirmBox("Keluar dari akun dan hapus kunci aplikasi? Anda perlu masuk lagi dengan email dan kata sandi.", { okLabel: "Keluar", danger: false, icon: "logOut" }))) return;
     clearLock();
     await supabase.auth.signOut();
     onUnlock();
@@ -216,7 +216,7 @@ export default function Settings({ categories, onChanged }: { categories: Catego
   }
 
   async function logout() {
-    if (!(await confirmBox("Keluar dari akun Dompet Pro? Anda perlu masuk lagi untuk melihat data.", { okLabel: "Keluar" }))) return;
+    if (!(await confirmBox("Keluar dari akun Dompet Pro? Anda perlu masuk lagi untuk melihat data.", { okLabel: "Keluar", danger: false, icon: "logOut" }))) return;
     await supabase.auth.signOut();
   }
 

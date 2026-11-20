@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import LucideIcon, { type LucideName } from "../components/LucideIcon";
 
-type Ask = { message: string; okLabel: string; danger: boolean; resolve: (v: boolean) => void };
+type Ask = { message: string; okLabel: string; danger: boolean; icon?: LucideName; resolve: (v: boolean) => void };
 type Toast = { id: number; text: string; kind: "ok" | "error" | "info" };
 
 let setAsk: ((a: Ask | null) => void) | null = null;
@@ -8,10 +9,10 @@ let addToast: ((t: Toast) => void) | null = null;
 let seq = 0;
 
 // Pengganti window.confirm yang lebih elegan.
-export function confirmBox(message: string, opts: { okLabel?: string; danger?: boolean } = {}): Promise<boolean> {
+export function confirmBox(message: string, opts: { okLabel?: string; danger?: boolean; icon?: LucideName } = {}): Promise<boolean> {
   return new Promise((resolve) => {
     if (!setAsk) return resolve(window.confirm(message));
-    setAsk({ message, okLabel: opts.okLabel ?? "Ya, lanjutkan", danger: opts.danger ?? true, resolve });
+    setAsk({ message, okLabel: opts.okLabel ?? "Ya, lanjutkan", danger: opts.danger ?? true, icon: opts.icon, resolve });
   });
 }
 
@@ -64,7 +65,7 @@ export function UiHost() {
       {ask && (
         <div className="fade-in fixed inset-0 z-[55] flex items-center justify-center bg-black/50 px-6 backdrop-blur-sm" onClick={() => close(false)}>
           <div role="alertdialog" aria-modal="true" className="pop w-full max-w-sm rounded-3xl bg-paper p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full text-xl ${ask.danger ? "bg-red-100" : "bg-emerald/15"}`}>{ask.danger ? "🗑️" : "💾"}</div>
+            <div className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full text-xl ${ask.danger ? "bg-red-100" : "bg-emerald/15"}`}>{ask.icon ? <LucideIcon name={ask.icon} className="h-6 w-6 text-navy" /> : ask.danger ? "🗑️" : "💾"}</div>
             <p className="mt-3 text-center text-[15px] leading-relaxed text-charcoal">{ask.message}</p>
             <div className="mt-5 grid grid-cols-2 gap-2">
               <button onClick={() => close(false)} className="rounded-xl border border-charcoal/15 bg-white py-3 font-medium text-charcoal">Batal</button>

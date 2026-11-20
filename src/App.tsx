@@ -23,6 +23,7 @@ import InstallPrompt from "./components/InstallPrompt";
 import LucideIcon, { type LucideName } from "./components/LucideIcon";
 import type { ReactNode } from "react";
 import { clearOfflineCache } from "./lib/offline";
+import { useExitGuard } from "./lib/exitGuard";
 
 // Ikon besar di pojok header: Lucide untuk Transaksi, Rencana, Lainnya. Analisis tetap emoji aslinya.
 const bigIcon = (name: LucideName) => <LucideIcon name={name} className="h-24 w-24" strokeWidth={1.2} />;
@@ -43,6 +44,7 @@ const NAV_LUCIDE: Partial<Record<string, LucideName>> = { transaksi: "receiptTex
 
 function Main({ session }: { session: Session }) {
   const [tab, setTab] = useState<"beranda" | "transaksi" | "analisis" | "rencana" | "lainnya">("beranda");
+  useExitGuard(tab, () => setTab("beranda"));
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [txs, setTxs] = useState<Tx[]>([]);

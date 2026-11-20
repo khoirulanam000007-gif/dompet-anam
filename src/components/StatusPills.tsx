@@ -1,5 +1,6 @@
 import { useOnline } from "../lib/offline";
 import { isDemo, exitDemo } from "../lib/demo";
+import { confirmBox } from "../lib/ui";
 
 export default function StatusPills() {
   const online = useOnline();
@@ -13,7 +14,7 @@ export default function StatusPills() {
         </div>
       )}
       {demo && (
-        <button onClick={exitDemo} className="pointer-events-auto rounded-full bg-gold px-3 py-1 text-[11px] font-bold text-navy shadow">
+        <button onClick={async () => { if (await confirmBox("Keluar dari Mode Demo? Data contoh akan hilang.", { okLabel: "Keluar", danger: false, icon: "logOut" })) exitDemo(); }} className="pointer-events-auto rounded-full bg-gold px-3 py-1 text-[11px] font-bold text-navy shadow">
           MODE DEMO · data contoh tidak disimpan · Keluar
         </button>
       )}
