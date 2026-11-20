@@ -210,7 +210,9 @@ export default function Settings({ categories, onChanged }: { categories: Catego
   }
   async function removeAvatar() {
     if (!(await confirmBox("Hapus foto profil dan kembali ke avatar bawaan?", { okLabel: "Hapus" }))) return;
-    if (await saveAvatar(null)) toast("Foto profil dihapus", "ok");
+    const r = await saveAvatar(null);
+    if (r.status === "error") toast(r.message ?? "Foto belum bisa dihapus.", "error");
+    else toast("Foto profil dihapus", "ok");
   }
 
   async function logout() {
@@ -225,7 +227,13 @@ export default function Settings({ categories, onChanged }: { categories: Catego
         <AvatarEditor
           file={editFile}
           onCancel={() => setEditFile(null)}
-          onSave={async (d) => { if (await saveAvatar(d)) { toast("Foto profil tersimpan", "ok"); setEditFile(null); } }}
+          onSave={async (d) => {
+            const r = await saveAvatar(d);
+            if (r.status === "error") return r.message ?? "Foto belum bisa disimpan. Coba lagi.";
+            if (r.status === "local") toast("Foto tersimpan di HP ini. Agar ikut tersimpan di akun dan semua perangkat, aktifkan SQL foto profil (lihat panduan).", "info");
+            else toast("Foto profil tersimpan", "ok");
+            setEditFile(null);
+          }}
         />
       )}
       <div className={card}>

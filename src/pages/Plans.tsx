@@ -6,6 +6,7 @@ import { fmtDate } from "../lib/types";
 import type { Account, Category } from "../lib/types";
 import { processRecurring } from "../lib/recurring";
 import LucideIcon, { CatIcon } from "../components/LucideIcon";
+import Portal from "../components/Portal";
 
 type Budget = { id: string; category_id: string; limit_amount: number };
 type Goal = { id: string; name: string; target_amount: number; target_date: string | null; saved_amount: number };
@@ -40,15 +41,17 @@ function goalHint(g: { saved_amount: number; target_amount: number; target_date:
 
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div className="fade-in fixed inset-0 z-30 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center">
-      <div className="sheet-up max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-paper p-5 sm:rounded-3xl">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-navy">{title}</h3>
-          <button onClick={onClose} className="text-sm underline">Tutup</button>
+    <Portal>
+      <div className="fade-in fixed inset-0 z-30 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center">
+        <div className="sheet-up max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-paper p-5 sm:rounded-3xl">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-navy">{title}</h3>
+            <button onClick={onClose} className="text-sm underline">Tutup</button>
+          </div>
+          <div className="mt-4 space-y-3">{children}</div>
         </div>
-        <div className="mt-4 space-y-3">{children}</div>
       </div>
-    </div>
+    </Portal>
   );
 }
 

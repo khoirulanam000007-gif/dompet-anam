@@ -4,6 +4,7 @@ import { confirmBox, toast } from "../lib/ui";
 import { rupiah } from "../lib/format";
 import type { Account } from "../lib/types";
 import LucideIcon, { ACC_LUCIDE } from "../components/LucideIcon";
+import Portal from "../components/Portal";
 
 const GRAD: Record<string, string> = {
   cash: "linear-gradient(135deg,#0f6b52,#13b57f)",
@@ -84,7 +85,7 @@ export default function Accounts({ accounts, onChanged, onTransfer }: Props) {
       </ul>
 
       {editing && (
-        <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/50 sm:items-center">
+        <Portal><div className="fixed inset-0 z-30 flex items-end justify-center bg-black/50 sm:items-center">
           <div className="w-full max-w-md rounded-t-3xl bg-paper p-5 sm:rounded-3xl">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-navy">{editing === "new" ? "Tambah rekening" : "Ubah rekening"}</h3>
@@ -110,7 +111,7 @@ export default function Accounts({ accounts, onChanged, onTransfer }: Props) {
               {busy ? "Menyimpan..." : "Simpan"}
             </button>
           </div>
-        </div>
+        </div></Portal>
       )}
     </section>
   );

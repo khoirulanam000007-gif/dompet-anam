@@ -1,9 +1,10 @@
+import Portal from "./Portal";
 import { useEffect, useRef, useState } from "react";
 
 const V = 260;   // ukuran area potong di layar (px)
 const OUT = 256; // ukuran foto hasil (px) -> file kecil
 
-type Props = { file: File; onCancel: () => void; onSave: (dataUrl: string) => Promise<void> | void };
+type Props = { file: File; onCancel: () => void; onSave: (dataUrl: string) => Promise<string | void> | string | void };
 
 export default function AvatarEditor({ file, onCancel, onSave }: Props) {
   const [url, setUrl] = useState("");
@@ -20,7 +21,7 @@ export default function AvatarEditor({ file, onCancel, onSave }: Props) {
     setUrl(u);
     const im = new Image();
     im.onload = () => setDim({ w: im.naturalWidth, h: im.naturalHeight });
-    im.onerror = () => setErr("Foto tidak bisa dibaca. Coba foto lain.");
+    im.onerror = () => setErr("Foto ini tidak bisa dibuka (formatnya mungkin tidak didukung). Pilih foto JPG, PNG, atau WebP lain.");
     im.src = u;
     return () => URL.revokeObjectURL(u);
   }, [file]);
@@ -58,7 +59,8 @@ export default function AvatarEditor({ file, onCancel, onSave }: Props) {
         if (out.length <= 120000) break;
       }
       if (out.length > 200000) throw new Error("size");
-      await onSave(out);
+      const problem = await onSave(out); // teks = alasan gagal, ditampilkan tepat di atas tombol
+      if (typeof problem === "string" && problem) setErr(problem);
     } catch {
       setErr("Gagal memproses foto. Coba foto lain.");
     }
@@ -74,8 +76,9 @@ export default function AvatarEditor({ file, onCancel, onSave }: Props) {
     } : {};
 
   return (
-    <div className="fade-in fixed inset-0 z-40 flex items-end justify-center bg-black/60 sm:items-center">
-      <div className="sheet-up w-full max-w-sm rounded-t-3xl bg-paper p-5 sm:rounded-3xl">
+    <Portal><div className="fade-in fixed inset-0 z-40 flex items-end justify-center bg-black/60 sm:items-center">
+      <div className="sheet-up flex max-h-[96vh] w-full max-w-sm flex-col rounded-t-3xl bg-paper sm:rounded-3xl">
+       <div className="min-h-0 flex-1 overflow-y-auto p-5 pb-2" data-avatar-scroll>
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-navy">Atur foto profil</h3>
           <button onClick={onCancel} className="text-sm underline">Batal</button>
@@ -107,11 +110,14 @@ export default function AvatarEditor({ file, onCancel, onSave }: Props) {
           <div className="text-sm"><p className="font-semibold">Pratinjau</p><p className="text-xs text-charcoal/60">Seperti ini foto Anda tampil di aplikasi.</p></div>
         </div>
 
-        {err && <p className="mt-3 text-sm text-red-700">{err}</p>}
-        <button onClick={save} disabled={busy || !dim} className="mt-4 w-full rounded-xl bg-emerald py-3 font-medium text-white disabled:opacity-60">
-          {busy ? "Menyimpan..." : "Simpan foto"}
+        {err && <p role="alert" className="mt-3 rounded-xl bg-red-100 px-3 py-2 text-sm text-red-800">{err}</p>}
+       </div>
+       <div className="p-5 pt-2 pb-[calc(1.25rem+env(safe-area-inset-bottom))]" data-avatar-footer>
+        <button onClick={save} disabled={busy || !dim} className="w-full rounded-xl bg-emerald py-3 font-medium text-white disabled:opacity-60">
+          {busy ? "Menyimpan..." : dim ? "Simpan foto" : err ? "Foto tidak bisa dibuka" : "Memuat foto..."}
         </button>
+       </div>
       </div>
-    </div>
+    </div></Portal>
   );
 }

@@ -10,7 +10,10 @@ export async function offlineFetch(input: RequestInfo | URL, init?: RequestInit)
   if (method !== "GET" || !/\/(rest|auth)\/v1\//.test(url)) return fetch(input, init);
   try {
     const res = await fetch(input, init);
-    if (res.ok) caches.open(DATA).then((c) => c.put(url, res.clone())).catch(() => {});
+    if (res.ok) {
+      const copy = res.clone(); // harus diambil SEKARANG, sebelum isi respons dibaca pemanggil
+      caches.open(DATA).then((c) => c.put(url, copy)).catch(() => {});
+    }
     return res;
   } catch (e) {
     try {
